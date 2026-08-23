@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { RecordTransaction } from '../application/RecordTransaction';
-import { IProductRepo, IStaffRepo } from '../application/interfaces';
-import { Product, Staff, Service, QueueTicket } from '../../shared/domain/entities';
-import { mockServices } from '../infrastructure/InMemoryRepos';
+import type {  IProductRepo, IStaffRepo, IServiceRepo  } from '../application/interfaces';
+import type {  Product, Staff, Service, QueueTicket  } from '../../../shared/domain/entities';
 
 interface Props {
   recordTransactionUseCase: RecordTransaction;
   productRepo: IProductRepo;
   staffRepo: IStaffRepo;
+  serviceRepo: IServiceRepo;
 }
 
-export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo, staffRepo }: Props) {
+export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo, staffRepo, serviceRepo }: Props) {
   const [amount, setAmount] = useState<string>('');
   const [tip, setTip] = useState<string>('');
   const [staffId, setStaffId] = useState<string>('');
@@ -21,12 +21,14 @@ export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo, staf
   
   const [products, setProducts] = useState<Product[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<{productId: string, quantity: number}[]>([]);
 
   useEffect(() => {
     productRepo.getAll().then(setProducts);
     staffRepo.getAll().then(setStaffList);
-  }, [productRepo, staffRepo]);
+    serviceRepo.getAll().then(setServices);
+  }, [productRepo, staffRepo, serviceRepo]);
 
   const handleAddProduct = (productId: string) => {
     if (!productId) return;
@@ -97,7 +99,7 @@ export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo, staf
               required
             >
               <option value="">Select Service</option>
-              {mockServices.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
         </div>

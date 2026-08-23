@@ -18,9 +18,9 @@ import {
   PostgresQueueTicketRepo,
   PostgresExpenseRepo,
   PostgresStaffRepo,
-  PostgresBonusTypeRepo
+  PostgresBonusTypeRepo,
+  PostgresServiceRepo
 } from './infrastructure/PostgresRepos';
-import { runSeedDataIfLocal } from './infrastructure/SeedData';
 
 // Dependency Injection Setup (Supabase / Postgres)
 const productRepo = new PostgresProductRepo();
@@ -29,6 +29,7 @@ const ticketRepo = new PostgresQueueTicketRepo();
 const expenseRepo = new PostgresExpenseRepo();
 const staffRepo = new PostgresStaffRepo();
 const bonusTypeRepo = new PostgresBonusTypeRepo();
+const serviceRepo = new PostgresServiceRepo();
 
 const recordProductUsage = new RecordProductUsage(productRepo);
 const completeAndAdvance = new CompleteAndAdvance(ticketRepo);
@@ -41,9 +42,6 @@ const recordExpense = new RecordExpense(expenseRepo);
 type Tab = 'receipts' | 'reports' | 'bonus' | 'expenses';
 
 function App() {
-  React.useEffect(() => {
-    runSeedDataIfLocal().catch(console.error);
-  }, []);
 
   const [activeTab, setActiveTab] = useState<Tab>('receipts');
 
@@ -81,6 +79,7 @@ function App() {
             recordTransactionUseCase={recordTransaction} 
             productRepo={productRepo}
             staffRepo={staffRepo} 
+            serviceRepo={serviceRepo}
           />
         )}
         {activeTab === 'expenses' && (

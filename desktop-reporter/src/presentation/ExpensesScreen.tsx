@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RecordExpense } from '../application/RecordExpense';
-import { IExpenseRepo } from '../application/interfaces';
-import { Expense } from '../../shared/domain/entities';
+import type {  IExpenseRepo  } from '../application/interfaces';
+import type {  Expense  } from '../../../shared/domain/entities';
 
 interface Props {
   recordExpenseUseCase: RecordExpense;

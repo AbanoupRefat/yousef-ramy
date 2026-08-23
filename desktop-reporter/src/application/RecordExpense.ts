@@ -1,5 +1,5 @@
-import { Expense } from '../../../shared/domain/entities';
-import { IExpenseRepo } from './interfaces';
+import type {  Expense  } from '../../../shared/domain/entities';
+import type {  IExpenseRepo  } from './interfaces';
 
 export class RecordExpense {
   constructor(private expenseRepo: IExpenseRepo) {}

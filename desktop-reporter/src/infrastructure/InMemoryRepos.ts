@@ -1,5 +1,5 @@
-import { Transaction, Product, QueueTicket, Expense, Staff, Service } from '../../../shared/domain/entities';
-import { ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo } from '../application/interfaces';
+import type {  Transaction, Product, QueueTicket, Expense, Staff, Service  } from '../../../shared/domain/entities';
+import type {  ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo  } from '../application/interfaces';
 
 export class InMemoryTransactionRepo implements ITransactionRepo {
   private transactions: Transaction[] = [];

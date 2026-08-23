@@ -1,11 +1,12 @@
-import {
+import type { 
   Transaction,
   Product,
   QueueTicket,
   Expense,
   Staff,
-  BonusType
-} from '../../../shared/domain/entities';
+  BonusType,
+  Service
+ } from '../../../shared/domain/entities';
 
 export interface ITransactionRepo {
   save(transaction: Transaction): Promise<void>;
@@ -42,4 +43,8 @@ export interface IBonusTypeRepo {
   getById(id: string): Promise<BonusType | null>;
   getAll(): Promise<BonusType[]>;
   update(bonusType: BonusType): Promise<void>;
+}
+
+export interface IServiceRepo {
+  getAll(): Promise<Service[]>;
 }

@@ -1,4 +1,4 @@
-import { IProductRepo } from './interfaces';
+import type {  IProductRepo  } from './interfaces';
 
 export class RecordProductUsage {
   constructor(private productRepo: IProductRepo) {}

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GenerateDailyReport, DailyReport } from '../application/GenerateDailyReport';
+import { GenerateDailyReport, type DailyReport } from '../application/GenerateDailyReport';
 import { ComputeBonus } from '../application/ComputeBonus';
-import { IStaffRepo } from '../application/interfaces';
-import { Staff } from '../../shared/domain/entities';
+import type {  IStaffRepo  } from '../application/interfaces';
+import type {  Staff  } from '../../../shared/domain/entities';
 
 interface Props {
   generateDailyReportUseCase: GenerateDailyReport;

@@ -1,4 +1,4 @@
-import { IStaffRepo, IBonusTypeRepo, ITransactionRepo } from './interfaces';
+import type {  IStaffRepo, IBonusTypeRepo, ITransactionRepo  } from './interfaces';
 
 export class ComputeBonus {
   constructor(

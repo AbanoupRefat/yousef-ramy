@@ -1,6 +1,6 @@
 import { supabase } from './SupabaseClient';
-import { Transaction, Product, QueueTicket, Expense, Staff, BonusType } from '../../../shared/domain/entities';
-import { ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo, IStaffRepo, IBonusTypeRepo } from '../application/interfaces';
+import type {  Transaction, Product, QueueTicket, Expense, Staff, BonusType, Service  } from '../../../shared/domain/entities';
+import type {  ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo, IStaffRepo, IBonusTypeRepo, IServiceRepo  } from '../application/interfaces';
 
 export class PostgresTransactionRepo implements ITransactionRepo {
   async save(transaction: Transaction): Promise<void> {
@@ -237,5 +237,16 @@ export class PostgresBonusTypeRepo implements IBonusTypeRepo {
       kind: row.kind as any,
       params: row.params
     };
+  }
+}
+
+export class PostgresServiceRepo implements IServiceRepo {
+  async getAll(): Promise<Service[]> {
+    const { data, error } = await supabase.from('services').select('*');
+    if (error) throw new Error(error.message);
+    return data.map(row => ({
+      id: row.id,
+      name: row.name
+    }));
   }
 }

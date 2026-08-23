@@ -1,5 +1,5 @@
-import { Transaction, Expense } from '../../../shared/domain/entities';
-import { ITransactionRepo, IExpenseRepo } from './interfaces';
+import type {  Transaction, Expense  } from '../../../shared/domain/entities';
+import type {  ITransactionRepo, IExpenseRepo  } from './interfaces';
 
 export type DailyReport = {
   date: Date;

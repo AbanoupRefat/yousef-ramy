@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Staff, BonusType, BonusKind } from '../../shared/domain/entities';
+import type {  Staff, BonusType, BonusKind  } from '../../../shared/domain/entities';
 import { UpdateBonusType } from '../application/UpdateBonusType';
 import { ComputeBonus } from '../application/ComputeBonus';
-import { IStaffRepo, IBonusTypeRepo } from '../application/interfaces';
+import type {  IStaffRepo, IBonusTypeRepo  } from '../application/interfaces';
 
 interface Props {
   updateBonusTypeUseCase: UpdateBonusType;

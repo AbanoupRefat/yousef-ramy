@@ -1,5 +1,5 @@
-import { Transaction } from '../../../shared/domain/entities';
-import { ITransactionRepo } from './interfaces';
+import type {  Transaction  } from '../../../shared/domain/entities';
+import type {  ITransactionRepo  } from './interfaces';
 import { RecordProductUsage } from './RecordProductUsage';
 import { CompleteAndAdvance } from './CompleteAndAdvance';
 

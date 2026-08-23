@@ -1,5 +1,5 @@
-import { IStaffRepo, IBonusTypeRepo } from './interfaces';
-import { BonusKind } from '../../../shared/domain/entities';
+import type {  IStaffRepo, IBonusTypeRepo  } from './interfaces';
+import type {  BonusKind  } from '../../../shared/domain/entities';
 
 export class UpdateBonusType {
   constructor(

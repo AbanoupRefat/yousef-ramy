@@ -1,4 +1,4 @@
-import { IQueueTicketRepo } from './interfaces';
+import type {  IQueueTicketRepo  } from './interfaces';
 
 export class CompleteAndAdvance {
   constructor(private ticketRepo: IQueueTicketRepo) {}
