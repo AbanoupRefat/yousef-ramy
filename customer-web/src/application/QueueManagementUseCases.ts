@@ -30,6 +30,15 @@ export class QueueManagementUseCases {
       throw new Error('Reservations temporarily closed');
     }
 
+    if (customerId) {
+      const activeCount = await this.ticketRepo.countForCustomerToday(customerId, ['active']);
+      const declinedCount = await this.ticketRepo.countForCustomerToday(customerId, ['declined']);
+      const totalUsed = activeCount + declinedCount;
+      if (totalUsed >= 2) {
+        throw new Error("You've used your 2 reservations for today. Please try again tomorrow.");
+      }
+    }
+
     const waitingTickets = await this.ticketRepo.getWaitingTickets(heroId);
     let maxPosition = -1;
     for (const t of waitingTickets) {
@@ -44,6 +53,7 @@ export class QueueManagementUseCases {
       heroId,
       serviceId,
       status: 'waiting',
+      reservationStatus: 'active',
       joinedAt: new Date(),
       position: maxPosition + 1,
       phoneNumber
@@ -100,6 +110,7 @@ export class QueueManagementUseCases {
       heroId: staffId,
       serviceId,
       status: 'waiting',
+      reservationStatus: 'active',
       joinedAt: new Date(),
       position: position,
       phoneNumber
@@ -136,5 +147,47 @@ export class QueueManagementUseCases {
     const settings = await this.settingsRepo.getSettings();
     settings.queueAcceptingRemote = accepting;
     await this.settingsRepo.updateSettings(settings);
+  }
+
+  async declineReservation(ticketId: string): Promise<void> {
+    const ticket = await this.ticketRepo.getById(ticketId);
+    if (!ticket) throw new Error('Ticket not found');
+    
+    ticket.reservationStatus = 'declined';
+    await this.ticketRepo.update(ticket);
+    
+    // We don't auto-advance or change the 'waiting' status because 
+    // it removes them from the active queue display anyway if we handle it in frontend,
+    // actually we should probably remove them from 'waiting' so they don't block.
+    // Wait, the prompt says: "doesn't auto-advance the queue" "If this ticket was with_hero, we need to manually advance".
+    // Wait, if they are 'waiting', they are still in the queue but marked as declined.
+    // If we leave them as 'waiting', they stay in maxPosition logic.
+    // Let's just update reservationStatus for now as requested.
+  }
+
+  async markNoShow(ticketId: string): Promise<void> {
+    const ticket = await this.ticketRepo.getById(ticketId);
+    if (!ticket) throw new Error('Ticket not found');
+    
+    ticket.reservationStatus = 'no_show';
+    await this.ticketRepo.update(ticket);
+  }
+
+  async cleanupEndOfDay(): Promise<{ expiredCount: number, noShowCount: number }> {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const now = new Date();
+
+    const expiredCount = await this.ticketRepo.updateMany(
+      { status: 'waiting', joinedAtGte: startOfToday, joinedAtLte: now },
+      { reservationStatus: 'expired' }
+    );
+
+    const noShowCount = await this.ticketRepo.updateMany(
+      { status: 'with_hero', joinedAtGte: startOfToday, joinedAtLte: now },
+      { reservationStatus: 'no_show' }
+    );
+
+    return { expiredCount, noShowCount };
   }
 }

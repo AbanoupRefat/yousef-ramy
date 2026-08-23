@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { GenerateDailyReport, type DailyReport } from '../application/GenerateDailyReport';
 import { ComputeBonus } from '../application/ComputeBonus';
 import type {  IStaffRepo  } from '../application/interfaces';
-import type {  Staff  } from '../../../shared/domain/entities';
+
 
 interface Props {
   generateDailyReportUseCase: GenerateDailyReport;
@@ -25,7 +25,7 @@ export function DailyReportScreen({ generateDailyReportUseCase, computeBonusUseC
       const allStaff = await staffRepo.getAll();
       const bonuses: {staffName: string, amount: number}[] = [];
       for (const staff of allStaff) {
-        const bonusAmount = await computeBonusUseCase.execute(staff.id, d, d);
+        const bonusAmount = await computeBonusUseCase.execute(staff.id, d);
         if (bonusAmount > 0) {
           bonuses.push({ staffName: staff.name, amount: bonusAmount });
         }

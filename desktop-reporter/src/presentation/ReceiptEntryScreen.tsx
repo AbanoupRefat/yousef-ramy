@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RecordTransaction } from '../application/RecordTransaction';
 import type {  IProductRepo, IStaffRepo, IServiceRepo  } from '../application/interfaces';
-import type {  Product, Staff, Service, QueueTicket  } from '../../../shared/domain/entities';
+import type {  Product, Staff, Service  } from '../../../shared/domain/entities';
 
 interface Props {
   recordTransactionUseCase: RecordTransaction;

@@ -85,17 +85,37 @@ export function QueueManagementScreen({ queueUseCases, staffRepo, serviceRepo }:
     }
   };
 
+  const handleCleanupEndOfDay = async () => {
+    if (window.confirm("Are you sure you want to clean up today's reservations? This will mark all remaining uncompleted reservations as expired/no-show.")) {
+      try {
+        const { expiredCount, noShowCount } = await queueUseCases.cleanupEndOfDay();
+        alert(`Cleanup complete! ${expiredCount} expired, ${noShowCount} no-shows marked. Ready for tomorrow.`);
+        loadData();
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-medium text-gray-900">Queue Settings</h2>
-          <button
-            onClick={handleToggleAcceptance}
-            className={`px-4 py-2 rounded-md text-white font-medium ${acceptingRemote ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-          >
-            {acceptingRemote ? 'Block Remote Reservations' : 'Allow Remote Reservations'}
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={handleToggleAcceptance}
+              className={`px-4 py-2 rounded-md text-white font-medium ${acceptingRemote ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+            >
+              {acceptingRemote ? 'Block Remote Reservations' : 'Allow Remote Reservations'}
+            </button>
+            <button
+              onClick={handleCleanupEndOfDay}
+              className="px-4 py-2 rounded-md bg-gray-600 text-white font-medium hover:bg-gray-700 flex items-center gap-2"
+            >
+              ⚙️ END OF DAY
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,7 +165,9 @@ export function QueueManagementScreen({ queueUseCases, staffRepo, serviceRepo }:
                     <div>
                       <span className="font-bold text-indigo-600 mr-2">#{ticket.position}</span>
                       <span className="text-sm font-medium text-gray-900">{ticket.phoneNumber || 'Walk-in'}</span>
-                      <span className="text-xs text-gray-500 block">Since: {ticket.joinedAt.toLocaleTimeString()}</span>
+                      {ticket.reservationStatus === 'declined' && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold">Declined</span>}
+                      {ticket.reservationStatus === 'no_show' && <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold">No Show</span>}
+                      <span className="text-xs text-gray-500 block mt-1">Since: {ticket.joinedAt.toLocaleTimeString()}</span>
                     </div>
                     <div className="flex space-x-2">
                       <button onClick={() => moveTicket(hero.id, ticket.id, ticket.position!, -1)} className="p-1 bg-gray-200 rounded hover:bg-gray-300">↑</button>

@@ -66,6 +66,18 @@ export function TrackTicketScreen({ ticketId, queueUseCases, onReset }: Props) {
     return `~${mins} minute${mins === 1 ? '' : 's'}`;
   };
 
+  const handleDecline = async () => {
+    if (window.confirm("Are you sure you want to cancel this reservation? It will count towards your daily limit.")) {
+      try {
+        await queueUseCases.declineReservation(ticketId);
+        onReset();
+      } catch (err) {
+        console.error(err);
+        alert('Failed to decline reservation.');
+      }
+    }
+  };
+
   if (isDone) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 animate-in fade-in zoom-in duration-500">
@@ -102,8 +114,11 @@ export function TrackTicketScreen({ ticketId, queueUseCases, onReset }: Props) {
           <p className="text-lg font-semibold text-primary">Your barber is ready for you.</p>
         </Card>
 
-        <Button onClick={onReset} className="py-4 text-[16px]">
-          Close Reservation
+        <Button onClick={onReset} className="py-4 text-[16px] mb-4">
+          I'M ON MY WAY
+        </Button>
+        <Button onClick={handleDecline} variant="text" className="text-red-500">
+          CANCEL RESERVATION
         </Button>
       </div>
     );
@@ -155,8 +170,8 @@ export function TrackTicketScreen({ ticketId, queueUseCases, onReset }: Props) {
         <Button onClick={fetchStatus} variant="secondary" className="py-4 text-[15px]">
           Refresh Status
         </Button>
-        <Button onClick={onReset} variant="text">
-          Cancel & Go Back
+        <Button onClick={handleDecline} variant="text" className="text-red-500">
+          Decline This Reservation
         </Button>
       </div>
     </div>

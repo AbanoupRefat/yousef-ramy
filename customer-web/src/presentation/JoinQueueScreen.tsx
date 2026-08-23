@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { QueueManagementUseCases } from '../application/QueueManagementUseCases';
-import type { IStaffRepo, IServiceRepo, IShopSettingsRepo } from '../application/interfaces';
+import type { IStaffRepo, IServiceRepo, IShopSettingsRepo, IQueueTicketRepo } from '../application/interfaces';
 import type { Staff, Service } from '../../../shared/domain/entities';
 import { supabase } from '../infrastructure/SupabaseClient';
 import { Button } from './components/Button';
@@ -10,31 +10,39 @@ import { HeroCard } from './components/HeroCard';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
 interface Props {
+  customer: { id: string, name: string, phone: string | null };
   queueUseCases: QueueManagementUseCases;
   staffRepo: IStaffRepo;
   serviceRepo: IServiceRepo;
   settingsRepo: IShopSettingsRepo;
+  ticketRepo: IQueueTicketRepo;
   onTicketCreated: (ticketId: string) => void;
 }
 
-export function JoinQueueScreen({ queueUseCases, staffRepo, serviceRepo, settingsRepo, onTicketCreated }: Props) {
+export function JoinQueueScreen({ customer, queueUseCases, staffRepo, serviceRepo, settingsRepo, ticketRepo, onTicketCreated }: Props) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [heroStats, setHeroStats] = useState<Record<string, { queueDepth: number, etaSeconds: number }>>({});
   
   const [selStaffId, setSelStaffId] = useState<string>(''); // 'next-available' or UUID
   const [selServiceId, setSelServiceId] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(customer.phone || '');
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isAccepting, setIsAccepting] = useState<boolean>(true);
+  
+  const [reservationsUsed, setReservationsUsed] = useState(0);
 
-  const fetchSettings = async () => {
+  const fetchSettingsAndLimits = async () => {
     try {
       const s = await settingsRepo.getSettings();
       setIsAccepting(s.queueAcceptingRemote);
+      
+      const activeCount = await ticketRepo.countForCustomerToday(customer.id, ['active']);
+      const declinedCount = await ticketRepo.countForCustomerToday(customer.id, ['declined']);
+      setReservationsUsed(activeCount + declinedCount);
     } catch (e) {
       console.error(e);
     }
@@ -44,15 +52,15 @@ export function JoinQueueScreen({ queueUseCases, staffRepo, serviceRepo, setting
     Promise.all([
       staffRepo.getAll().then(s => setStaff(s.filter(x => x.role === 'hero'))),
       serviceRepo.getAll().then(setServices),
-      fetchSettings()
+      fetchSettingsAndLimits()
     ]).finally(() => setInitialLoading(false));
 
     const channel = supabase.channel('shop_settings_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, () => fetchSettings())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, () => fetchSettingsAndLimits())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [staffRepo, serviceRepo, settingsRepo]);
+  }, [staffRepo, serviceRepo, settingsRepo, customer.id, ticketRepo]);
 
   useEffect(() => {
     if (!selServiceId || staff.length === 0) return;
@@ -112,7 +120,7 @@ export function JoinQueueScreen({ queueUseCases, staffRepo, serviceRepo, setting
     setLoading(true);
     setError(null);
     try {
-      const ticket = await queueUseCases.joinQueue(null, selServiceId, targetHeroId, phoneNumber);
+      const ticket = await queueUseCases.joinQueue(customer.id, selServiceId, targetHeroId, phoneNumber);
       onTicketCreated(ticket.id);
     } catch (err: any) {
       setError(err.message || 'Failed to join queue.');
@@ -142,9 +150,28 @@ export function JoinQueueScreen({ queueUseCases, staffRepo, serviceRepo, setting
     );
   }
 
+  const getLimitText = () => {
+    if (reservationsUsed >= 2) return "You've used your 2 reservations for today. Try again tomorrow.";
+    return `You have ${reservationsUsed}/2 reservations today — ${2 - reservationsUsed} slot(s) remaining`;
+  };
+
+  const limitReached = reservationsUsed >= 2;
+
   return (
     <div className="mt-6 mb-10">
       
+      <div className="mb-6 bg-white p-4 rounded-lg shadow-sm flex items-center justify-between border-l-4 border-primary">
+        <div>
+          <p className="text-sm text-gray-500">Welcome back,</p>
+          <p className="font-bold text-gray-900">{customer.name}</p>
+        </div>
+        <div className="text-right">
+          <p className={`text-xs font-semibold ${limitReached ? 'text-red-500' : 'text-primary'}`}>
+            {getLimitText()}
+          </p>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 shadow-sm text-sm font-medium flex items-start gap-3">
           <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -152,82 +179,89 @@ export function JoinQueueScreen({ queueUseCases, staffRepo, serviceRepo, setting
         </div>
       )}
 
-      <form onSubmit={handleJoin} className="space-y-8">
-        
-        {/* Service Picker */}
-        <section>
-          <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Service</h2>
-          <div className="flex flex-wrap gap-2">
-            {services.map(s => (
-              <PillButton 
-                key={s.id}
-                label={s.name}
-                selected={selServiceId === s.id}
-                onClick={() => setSelServiceId(s.id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Hero Picker */}
-        {selServiceId && (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Your Hero</h2>
-            <div className="space-y-3">
-              <HeroCard
-                name="Next Available"
-                subtitle="Fastest Option"
-                isNextAvailable={true}
-                selected={selStaffId === 'next-available'}
-                onClick={() => setSelStaffId('next-available')}
-              />
-              
-              {staff.map(hero => {
-                const stats = heroStats[hero.id];
-                return (
-                  <HeroCard
-                    key={hero.id}
-                    name={hero.name}
-                    queueDepth={stats?.queueDepth}
-                    etaSeconds={stats?.etaSeconds}
-                    selected={selStaffId === hero.id}
-                    onClick={() => setSelStaffId(hero.id)}
-                  />
-                );
-              })}
+      {limitReached ? (
+        <Card className="p-6 text-center border-none ring-1 ring-red-100 bg-red-50 mt-8">
+           <h3 className="font-bold text-red-700 mb-2">Limit Reached</h3>
+           <p className="text-red-600 text-sm">You have already booked 2 tickets today. You cannot book anymore online until tomorrow.</p>
+        </Card>
+      ) : (
+        <form onSubmit={handleJoin} className="space-y-8">
+          
+          {/* Service Picker */}
+          <section>
+            <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Service</h2>
+            <div className="flex flex-wrap gap-2">
+              {services.map(s => (
+                <PillButton 
+                  key={s.id}
+                  label={s.name}
+                  selected={selServiceId === s.id}
+                  onClick={() => setSelServiceId(s.id)}
+                />
+              ))}
             </div>
           </section>
-        )}
 
-        {/* Contact Info */}
-        {selServiceId && selStaffId && (
-          <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Your Phone Number</h2>
-            <Card className="p-1 border-0 ring-1 ring-gray-200 focus-within:ring-2 focus-within:ring-primary shadow-sm bg-white overflow-hidden transition-all duration-200">
-              <div className="flex items-center">
-                <span className="pl-4 pr-2 text-gray-400 font-medium">+20</span>
-                <input 
-                  type="tel" 
-                  value={phoneNumber} 
-                  onChange={e => setPhoneNumber(e.target.value)} 
-                  placeholder="10 1234 5678"
-                  className="w-full py-4 pr-4 bg-transparent focus:outline-none font-medium text-gray-900 placeholder-gray-300" 
+          {/* Hero Picker */}
+          {selServiceId && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Your Hero</h2>
+              <div className="space-y-3">
+                <HeroCard
+                  name="Next Available"
+                  subtitle="Fastest Option"
+                  isNextAvailable={true}
+                  selected={selStaffId === 'next-available'}
+                  onClick={() => setSelStaffId('next-available')}
                 />
+                
+                {staff.map(hero => {
+                  const stats = heroStats[hero.id];
+                  return (
+                    <HeroCard
+                      key={hero.id}
+                      name={hero.name}
+                      queueDepth={stats?.queueDepth}
+                      etaSeconds={stats?.etaSeconds}
+                      selected={selStaffId === hero.id}
+                      onClick={() => setSelStaffId(hero.id)}
+                    />
+                  );
+                })}
               </div>
-            </Card>
-            <p className="text-[11px] text-gray-500 mt-2 ml-1">We use this to find your ticket later if you close the app.</p>
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* Submit */}
-        {selServiceId && selStaffId && (
-          <div className="pt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <Button type="submit" disabled={loading} className="py-4 text-[15px] uppercase tracking-wide">
-              {loading ? 'Securing spot...' : 'Reserve Your Spot'}
-            </Button>
-          </div>
-        )}
-      </form>
+          {/* Contact Info */}
+          {selServiceId && selStaffId && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Your Phone Number</h2>
+              <Card className="p-1 border-0 ring-1 ring-gray-200 focus-within:ring-2 focus-within:ring-primary shadow-sm bg-white overflow-hidden transition-all duration-200">
+                <div className="flex items-center">
+                  <span className="pl-4 pr-2 text-gray-400 font-medium">+20</span>
+                  <input 
+                    type="tel" 
+                    value={phoneNumber} 
+                    onChange={e => setPhoneNumber(e.target.value)} 
+                    placeholder="10 1234 5678"
+                    className="w-full py-4 pr-4 bg-transparent focus:outline-none font-medium text-gray-900 placeholder-gray-300" 
+                  />
+                </div>
+              </Card>
+              <p className="text-[11px] text-gray-500 mt-2 ml-1">We use this to find your ticket later if you close the app.</p>
+            </section>
+          )}
+
+          {/* Submit */}
+          {selServiceId && selStaffId && (
+            <div className="pt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Button type="submit" disabled={loading} className="py-4 text-[15px] uppercase tracking-wide">
+                {loading ? 'Securing spot...' : 'Reserve Your Spot'}
+              </Button>
+            </div>
+          )}
+        </form>
+      )}
     </div>
   );
 }

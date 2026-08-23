@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ReceiptEntryScreen } from './presentation/ReceiptEntryScreen';
 import { DailyReportScreen } from './presentation/DailyReportScreen';
 import { BonusConfigScreen } from './presentation/BonusConfigScreen';

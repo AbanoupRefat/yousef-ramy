@@ -1,5 +1,5 @@
 import { supabase } from './SupabaseClient';
-import type {  Transaction, Product, QueueTicket, Expense, Staff, BonusType, Service, ShopSettings, StaffServiceDuration  } from '../../../shared/domain/entities';
+import type {  Transaction, Product, QueueTicket, Expense, Staff, BonusType, Service, ShopSettings, StaffServiceDuration, ReservationStatus  } from '../../../shared/domain/entities';
 import type {  ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo, IStaffRepo, IBonusTypeRepo, IServiceRepo, IShopSettingsRepo, IStaffServiceDurationRepo  } from '../application/interfaces';
 
 export class PostgresTransactionRepo implements ITransactionRepo {
@@ -98,6 +98,7 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
       hero_id: ticket.heroId,
       service_id: ticket.serviceId,
       status: ticket.status,
+      reservation_status: ticket.reservationStatus || 'active',
       joined_at: ticket.joinedAt.toISOString(),
       position: ticket.position,
       phone_number: ticket.phoneNumber
@@ -108,6 +109,7 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
   async update(ticket: QueueTicket): Promise<void> {
     const { error } = await supabase.from('queue_tickets').update({
       status: ticket.status,
+      reservation_status: ticket.reservationStatus || 'active',
       position: ticket.position
     }).eq('id', ticket.id);
     if (error) throw new Error(error.message);
@@ -122,6 +124,7 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
       hero_id: t.heroId,
       service_id: t.serviceId,
       status: t.status,
+      reservation_status: t.reservationStatus || 'active',
       joined_at: t.joinedAt.toISOString(),
       position: t.position,
       phone_number: t.phoneNumber
@@ -154,6 +157,39 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
     return data.map(this.mapRowToTicket);
   }
 
+  async countForCustomerToday(customerId: string, statuses: ReservationStatus[]): Promise<number> {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from('queue_tickets')
+      .select('*', { count: 'exact', head: true })
+      .eq('customer_id', customerId)
+      .in('reservation_status', statuses)
+      .gte('joined_at', startOfDay.toISOString());
+
+    if (error) throw new Error(error.message);
+    return count || 0;
+  }
+
+  async updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus }): Promise<number> {
+    let query = supabase.from('queue_tickets').update({ reservation_status: update.reservationStatus });
+    
+    if (filter.status) {
+      query = query.eq('status', filter.status);
+    }
+    if (filter.joinedAtGte) {
+      query = query.gte('joined_at', filter.joinedAtGte.toISOString());
+    }
+    if (filter.joinedAtLte) {
+      query = query.lte('joined_at', filter.joinedAtLte.toISOString());
+    }
+
+    const { data, error } = await query.select('id');
+    if (error) throw new Error(error.message);
+    return data ? data.length : 0;
+  }
+
   private mapRowToTicket(row: any): QueueTicket {
     return {
       id: row.id,
@@ -161,6 +197,7 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
       heroId: row.hero_id,
       serviceId: row.service_id,
       status: row.status as any,
+      reservationStatus: row.reservation_status as ReservationStatus,
       joinedAt: new Date(row.joined_at),
       position: row.position,
       phoneNumber: row.phone_number

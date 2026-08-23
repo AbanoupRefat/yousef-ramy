@@ -7,7 +7,8 @@ import type {
   BonusType,
   Service,
   ShopSettings,
-  StaffServiceDuration
+  StaffServiceDuration,
+  ReservationStatus
  } from '../../../shared/domain/entities';
 
 export interface ITransactionRepo {
@@ -29,6 +30,8 @@ export interface IQueueTicketRepo {
   getWaitingTickets(heroId: string): Promise<QueueTicket[]>;
   getTicketsWithHero(heroId: string): Promise<QueueTicket[]>;
   getAllTickets(): Promise<QueueTicket[]>;
+  countForCustomerToday(customerId: string, statuses: ReservationStatus[]): Promise<number>;
+  updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus }): Promise<number>;
 }
 
 export interface IExpenseRepo {

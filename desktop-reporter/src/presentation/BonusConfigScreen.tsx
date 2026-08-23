@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type {  Staff, BonusType, BonusKind  } from '../../../shared/domain/entities';
 import { UpdateBonusType } from '../application/UpdateBonusType';
 import { ComputeBonus } from '../application/ComputeBonus';
@@ -16,7 +16,6 @@ export function BonusConfigScreen({ updateBonusTypeUseCase, computeBonusUseCase,
   const [bonusTypes, setBonusTypes] = useState<BonusType[]>([]);
   
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
-  const [currentBonusType, setCurrentBonusType] = useState<BonusType | null>(null);
   const [computedBonus, setComputedBonus] = useState<number | null>(null);
 
   const [editKind, setEditKind] = useState<BonusKind>('percentage_commission');
@@ -38,7 +37,6 @@ export function BonusConfigScreen({ updateBonusTypeUseCase, computeBonusUseCase,
       const staff = staffList.find(s => s.id === selectedStaffId);
       if (staff) {
         const bType = bonusTypes.find(b => b.id === staff.bonusTypeId);
-        setCurrentBonusType(bType || null);
         if (bType) {
           setEditKind(bType.kind);
           setEditParams({ ...bType.params });
@@ -51,7 +49,7 @@ export function BonusConfigScreen({ updateBonusTypeUseCase, computeBonusUseCase,
   const recalculate = async (sId: string) => {
     try {
       // Use today's date for demo moment
-      const bonus = await computeBonusUseCase.execute(sId, new Date(), new Date());
+      const bonus = await computeBonusUseCase.execute(sId, new Date());
       setComputedBonus(bonus);
     } catch (e) {
       console.error(e);

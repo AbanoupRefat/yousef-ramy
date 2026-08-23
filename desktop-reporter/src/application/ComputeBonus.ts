@@ -7,7 +7,7 @@ export class ComputeBonus {
     private transactionRepo: ITransactionRepo
   ) {}
 
-  async execute(staffId: string, startDate: Date, endDate: Date): Promise<number> {
+  async execute(staffId: string, startDate: Date): Promise<number> {
     const staff = await this.staffRepo.getById(staffId);
     if (!staff) throw new Error('Staff not found');
 

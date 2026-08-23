@@ -3,6 +3,9 @@ export type Customer = {
   name?: string;
   phoneNumber?: string;
   loyaltyHeroId?: string;
+  googleId?: string;
+  email?: string;
+  createdAt?: Date;
 };
 
 export type StaffRole = 'hero' | 'helper';
@@ -20,6 +23,7 @@ export type Service = {
 };
 
 export type QueueTicketStatus = 'waiting' | 'with_hero' | 'done';
+export type ReservationStatus = 'active' | 'declined' | 'completed' | 'no_show' | 'expired';
 
 export type QueueTicket = {
   id: string;
@@ -27,6 +31,7 @@ export type QueueTicket = {
   heroId?: string;
   serviceId: string;
   status: QueueTicketStatus;
+  reservationStatus?: ReservationStatus;
   joinedAt: Date;
   position?: number;
   phoneNumber?: string;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { JoinQueueScreen } from './presentation/JoinQueueScreen';
 import { TrackTicketScreen } from './presentation/TrackTicketScreen';
+import { LoginScreen } from './presentation/LoginScreen';
 import { QueueManagementUseCases } from './application/QueueManagementUseCases';
 import { 
   PostgresQueueTicketRepo, 
@@ -20,6 +21,7 @@ const queueUseCases = new QueueManagementUseCases(ticketRepo, settingsRepo, dura
 
 function App() {
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<{ id: string, name: string, phone: string | null } | null>(null);
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
@@ -34,12 +36,16 @@ function App() {
         </header>
 
         <main className="flex-1 w-full px-4 pb-8 overflow-y-auto">
-          {!ticketId ? (
+          {!customer ? (
+            <LoginScreen onLogin={(id, name, phone) => setCustomer({ id, name, phone })} />
+          ) : !ticketId ? (
             <JoinQueueScreen 
+              customer={customer}
               queueUseCases={queueUseCases}
               staffRepo={staffRepo}
               serviceRepo={serviceRepo}
               settingsRepo={settingsRepo}
+              ticketRepo={ticketRepo}
               onTicketCreated={setTicketId} 
             />
           ) : (
