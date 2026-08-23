@@ -13,21 +13,22 @@ import { UpdateBonusType } from './application/UpdateBonusType';
 import { RecordExpense } from './application/RecordExpense';
 
 import {
-  InMemoryTransactionRepo,
-  InMemoryProductRepo,
-  InMemoryQueueTicketRepo,
-  InMemoryExpenseRepo,
-  InMemoryStaffRepo,
-  InMemoryBonusTypeRepo
-} from './infrastructure/InMemoryRepos';
+  PostgresTransactionRepo,
+  PostgresProductRepo,
+  PostgresQueueTicketRepo,
+  PostgresExpenseRepo,
+  PostgresStaffRepo,
+  PostgresBonusTypeRepo
+} from './infrastructure/PostgresRepos';
+import { runSeedDataIfLocal } from './infrastructure/SeedData';
 
-// Dependency Injection Setup (In-Memory Stubs)
-const productRepo = new InMemoryProductRepo();
-const transactionRepo = new InMemoryTransactionRepo();
-const ticketRepo = new InMemoryQueueTicketRepo();
-const expenseRepo = new InMemoryExpenseRepo();
-const staffRepo = new InMemoryStaffRepo();
-const bonusTypeRepo = new InMemoryBonusTypeRepo();
+// Dependency Injection Setup (Supabase / Postgres)
+const productRepo = new PostgresProductRepo();
+const transactionRepo = new PostgresTransactionRepo();
+const ticketRepo = new PostgresQueueTicketRepo();
+const expenseRepo = new PostgresExpenseRepo();
+const staffRepo = new PostgresStaffRepo();
+const bonusTypeRepo = new PostgresBonusTypeRepo();
 
 const recordProductUsage = new RecordProductUsage(productRepo);
 const completeAndAdvance = new CompleteAndAdvance(ticketRepo);
@@ -40,6 +41,10 @@ const recordExpense = new RecordExpense(expenseRepo);
 type Tab = 'receipts' | 'reports' | 'bonus' | 'expenses';
 
 function App() {
+  React.useEffect(() => {
+    runSeedDataIfLocal().catch(console.error);
+  }, []);
+
   const [activeTab, setActiveTab] = useState<Tab>('receipts');
 
   const tabClass = (tab: Tab) => `px-3 py-2 rounded-md text-sm font-medium ${

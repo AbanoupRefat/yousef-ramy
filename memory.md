@@ -28,4 +28,10 @@ every commit. Append only — never delete or rewrite past entries.
 - Apps affected: desktop-reporter
 - Why: Steps 3 and 4 of build order in ARCHITECTURE.md. 
 
-*Note: Postgres/Supabase integration and the real queue engine (customer-web) are still the two remaining phases to complete the system.*
+## 2026-08-23 — Supabase Integration (Real DB via Repos)
+- What changed: Swapped InMemoryRepos with PostgresRepos using Supabase JS client. Initialized Supabase CLI, created `init_schema` migration, and deleted standalone `schema.sql`. Added `.env.example` and seed data script guarded by `VITE_SUPABASE_ENV=local`.
+- Layers touched: infrastructure (added PostgresRepos, SupabaseClient, SeedData), presentation (updated App.tsx injection).
+- Apps affected: desktop-reporter, backend (schema moved to migrations).
+- Why: Step 1 & 2 infrastructure rollout, moving from stubs to live database without changing application layer.
+
+*Note: Migrations now live in `supabase/migrations/` and `schema.sql` is superseded by that going forward. Supabase is now live for desktop-reporter. Phase 5 (queue engine + customer-web) is the only remaining phase to complete the system.*
