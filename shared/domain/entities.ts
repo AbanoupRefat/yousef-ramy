@@ -23,11 +23,13 @@ export type QueueTicketStatus = 'waiting' | 'with_hero' | 'done';
 
 export type QueueTicket = {
   id: string;
-  customerId: string;
+  customerId?: string | null;
   heroId?: string;
   serviceId: string;
   status: QueueTicketStatus;
   joinedAt: Date;
+  position?: number;
+  phoneNumber?: string;
 };
 
 export type Transaction = {
@@ -64,4 +66,16 @@ export type Product = {
   lowStockThreshold: number;
   unitCost: number;
   salePrice?: number;
+};
+
+export type ShopSettings = {
+  id: string;
+  queueAcceptingRemote: boolean;
+};
+
+export type StaffServiceDuration = {
+  staffId: string;
+  serviceId: string;
+  rollingAvgSeconds: number;
+  sampleCount: number;
 };

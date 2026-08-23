@@ -3,6 +3,7 @@ import { ReceiptEntryScreen } from './presentation/ReceiptEntryScreen';
 import { DailyReportScreen } from './presentation/DailyReportScreen';
 import { BonusConfigScreen } from './presentation/BonusConfigScreen';
 import { ExpensesScreen } from './presentation/ExpensesScreen';
+import { QueueManagementScreen } from './presentation/QueueManagementScreen';
 
 import { RecordTransaction } from './application/RecordTransaction';
 import { RecordProductUsage } from './application/RecordProductUsage';
@@ -11,6 +12,7 @@ import { GenerateDailyReport } from './application/GenerateDailyReport';
 import { ComputeBonus } from './application/ComputeBonus';
 import { UpdateBonusType } from './application/UpdateBonusType';
 import { RecordExpense } from './application/RecordExpense';
+import { QueueManagementUseCases } from './application/QueueManagementUseCases';
 
 import {
   PostgresTransactionRepo,
@@ -19,7 +21,9 @@ import {
   PostgresExpenseRepo,
   PostgresStaffRepo,
   PostgresBonusTypeRepo,
-  PostgresServiceRepo
+  PostgresServiceRepo,
+  PostgresStaffServiceDurationRepo,
+  PostgresShopSettingsRepo
 } from './infrastructure/PostgresRepos';
 
 // Dependency Injection Setup (Supabase / Postgres)
@@ -30,16 +34,19 @@ const expenseRepo = new PostgresExpenseRepo();
 const staffRepo = new PostgresStaffRepo();
 const bonusTypeRepo = new PostgresBonusTypeRepo();
 const serviceRepo = new PostgresServiceRepo();
+const durationRepo = new PostgresStaffServiceDurationRepo();
+const shopSettingsRepo = new PostgresShopSettingsRepo();
 
 const recordProductUsage = new RecordProductUsage(productRepo);
-const completeAndAdvance = new CompleteAndAdvance(ticketRepo);
+const completeAndAdvance = new CompleteAndAdvance(ticketRepo, durationRepo);
 const recordTransaction = new RecordTransaction(transactionRepo, recordProductUsage, completeAndAdvance);
 const generateDailyReport = new GenerateDailyReport(transactionRepo, expenseRepo);
 const computeBonus = new ComputeBonus(staffRepo, bonusTypeRepo, transactionRepo);
 const updateBonusType = new UpdateBonusType(staffRepo, bonusTypeRepo);
 const recordExpense = new RecordExpense(expenseRepo);
+const queueUseCases = new QueueManagementUseCases(ticketRepo, shopSettingsRepo, durationRepo);
 
-type Tab = 'receipts' | 'reports' | 'bonus' | 'expenses';
+type Tab = 'receipts' | 'reports' | 'bonus' | 'expenses' | 'queue';
 
 function App() {
 
@@ -67,6 +74,9 @@ function App() {
               </button>
               <button onClick={() => setActiveTab('bonus')} className={tabClass('bonus')}>
                 Bonus Config
+              </button>
+              <button onClick={() => setActiveTab('queue')} className={tabClass('queue')}>
+                Queue Management
               </button>
             </nav>
           </div>
@@ -101,6 +111,13 @@ function App() {
             computeBonusUseCase={computeBonus}
             staffRepo={staffRepo}
             bonusTypeRepo={bonusTypeRepo}
+          />
+        )}
+        {activeTab === 'queue' && (
+          <QueueManagementScreen 
+            queueUseCases={queueUseCases}
+            staffRepo={staffRepo}
+            serviceRepo={serviceRepo}
           />
         )}
       </main>

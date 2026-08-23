@@ -35,3 +35,9 @@ every commit. Append only â€” never delete or rewrite past entries.
 - Why: Step 1 & 2 infrastructure rollout, moving from stubs to live database without changing application layer.
 
 *Note: Migrations now live in `supabase/migrations/` and `schema.sql` is superseded by that going forward. Supabase is now live for desktop-reporter. Phase 5 (queue engine + customer-web) is the only remaining phase to complete the system.*
+
+## 2026-08-23 — Phase 5: Queue Engine + Customer Web App
+- What changed: Built the core queue engine, rolling average durations, realtime position syncing, Desktop Admin Queue UI, and the customer-facing web app.
+- Layers touched: domain / application / infrastructure / presentation
+- Apps affected: customer-web, desktop-reporter, backend
+- Why: This completes the core MVP and answers the barber's objection about artificial queue limits, moving from fixed slots to a live EMA-based waitlist.
