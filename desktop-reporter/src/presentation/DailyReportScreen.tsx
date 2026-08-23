@@ -1,18 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { GenerateDailyReport, DailyReport } from '../application/GenerateDailyReport';
+import { ComputeBonus } from '../application/ComputeBonus';
+import { IStaffRepo } from '../application/interfaces';
+import { Staff } from '../../shared/domain/entities';
 
 interface Props {
   generateDailyReportUseCase: GenerateDailyReport;
+  computeBonusUseCase: ComputeBonus;
+  staffRepo: IStaffRepo;
 }
 
-export function DailyReportScreen({ generateDailyReportUseCase }: Props) {
+export function DailyReportScreen({ generateDailyReportUseCase, computeBonusUseCase, staffRepo }: Props) {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [staffBonuses, setStaffBonuses] = useState<{staffName: string, amount: number}[]>([]);
 
   const loadReport = async () => {
     try {
-      const result = await generateDailyReportUseCase.execute(new Date(date));
+      const d = new Date(date);
+      const result = await generateDailyReportUseCase.execute(d);
       setReport(result);
+
+      // Compute bonuses
+      const allStaff = await staffRepo.getAll();
+      const bonuses: {staffName: string, amount: number}[] = [];
+      for (const staff of allStaff) {
+        const bonusAmount = await computeBonusUseCase.execute(staff.id, d, d);
+        if (bonusAmount > 0) {
+          bonuses.push({ staffName: staff.name, amount: bonusAmount });
+        }
+      }
+      setStaffBonuses(bonuses);
     } catch (err) {
       console.error(err);
     }
@@ -46,8 +64,8 @@ export function DailyReportScreen({ generateDailyReportUseCase }: Props) {
               <div className="text-3xl font-bold text-red-700">${report.totalOutcome.toFixed(2)}</div>
             </div>
             <div className={`p-4 rounded-lg border ${report.netTotal >= 0 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
-              <div className="text-sm font-medium uppercase tracking-wide opacity-80">Net Total</div>
-              <div className="text-3xl font-bold">${report.netTotal.toFixed(2)}</div>
+              <div className="text-sm font-medium uppercase tracking-wide opacity-80">True Net Total</div>
+              <div className="text-3xl font-bold">${(report.netTotal - staffBonuses.reduce((sum, b) => sum + b.amount, 0)).toFixed(2)}</div>
             </div>
           </div>
 
@@ -71,22 +89,40 @@ export function DailyReportScreen({ generateDailyReportUseCase }: Props) {
               )}
             </div>
             
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">Outcome (Expenses)</h3>
-              {report.expenses.length === 0 ? (
-                <p className="text-gray-500 italic">No expenses today</p>
-              ) : (
-                <ul className="space-y-3">
-                  {report.expenses.map(e => (
-                    <li key={e.id} className="flex justify-between p-3 bg-gray-50 rounded border border-gray-100">
-                      <div>
-                        <div className="font-medium">{e.description}</div>
-                      </div>
-                      <div className="font-bold text-red-600">${Number(e.amount).toFixed(2)}</div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">Outcome (Expenses)</h3>
+                {report.expenses.length === 0 ? (
+                  <p className="text-gray-500 italic">No expenses today</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {report.expenses.map(e => (
+                      <li key={e.id} className="flex justify-between p-3 bg-gray-50 rounded border border-gray-100">
+                        <div>
+                          <div className="font-medium">{e.description}</div>
+                        </div>
+                        <div className="font-bold text-red-600">${Number(e.amount).toFixed(2)}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-3 border-b pb-2">Pending Staff Bonuses</h3>
+                {staffBonuses.length === 0 ? (
+                  <p className="text-gray-500 italic">No bonuses accrued today</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {staffBonuses.map(b => (
+                      <li key={b.staffName} className="flex justify-between p-3 bg-indigo-50 rounded border border-indigo-100">
+                        <div className="font-medium text-indigo-900">{b.staffName}</div>
+                        <div className="font-bold text-indigo-600">${Number(b.amount).toFixed(2)}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </div>

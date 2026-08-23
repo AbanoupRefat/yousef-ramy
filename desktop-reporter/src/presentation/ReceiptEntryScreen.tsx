@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { RecordTransaction } from '../application/RecordTransaction';
-import { IProductRepo } from '../application/interfaces';
+import { IProductRepo, IStaffRepo } from '../application/interfaces';
 import { Product, Staff, Service, QueueTicket } from '../../shared/domain/entities';
-import { mockStaff, mockServices } from '../infrastructure/InMemoryRepos';
+import { mockServices } from '../infrastructure/InMemoryRepos';
 
 interface Props {
   recordTransactionUseCase: RecordTransaction;
   productRepo: IProductRepo;
+  staffRepo: IStaffRepo;
 }
 
-export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo }: Props) {
+export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo, staffRepo }: Props) {
   const [amount, setAmount] = useState<string>('');
   const [tip, setTip] = useState<string>('');
   const [staffId, setStaffId] = useState<string>('');
@@ -19,11 +20,13 @@ export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo }: Pr
   const [ticketId, setTicketId] = useState<string>('ticket-1');
   
   const [products, setProducts] = useState<Product[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<{productId: string, quantity: number}[]>([]);
 
   useEffect(() => {
     productRepo.getAll().then(setProducts);
-  }, [productRepo]);
+    staffRepo.getAll().then(setStaffList);
+  }, [productRepo, staffRepo]);
 
   const handleAddProduct = (productId: string) => {
     if (!productId) return;
@@ -82,7 +85,7 @@ export function ReceiptEntryScreen({ recordTransactionUseCase, productRepo }: Pr
               required
             >
               <option value="">Select Staff</option>
-              {mockStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>

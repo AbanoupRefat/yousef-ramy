@@ -92,12 +92,51 @@ export class InMemoryExpenseRepo implements IExpenseRepo {
   }
 }
 
-// Temporary: seed staff and services for the UI since they're needed for picker
-export const mockStaff: Staff[] = [
-  { id: 'staff-1', name: 'John Hero', role: 'hero', bonusTypeId: 'b-1' },
-  { id: 'staff-2', name: 'Mike Hero', role: 'hero', bonusTypeId: 'b-1' }
-];
+export class InMemoryStaffRepo implements IStaffRepo {
+  private staffList: Staff[] = [
+    { id: 'staff-1', name: 'John Hero', role: 'hero', bonusTypeId: 'b-1' },
+    { id: 'staff-2', name: 'Mike Hero', role: 'hero', bonusTypeId: 'b-2' }
+  ];
 
+  async getById(id: string): Promise<Staff | null> {
+    return this.staffList.find(s => s.id === id) || null;
+  }
+
+  async getAll(): Promise<Staff[]> {
+    return this.staffList;
+  }
+
+  async update(staff: Staff): Promise<void> {
+    const idx = this.staffList.findIndex(s => s.id === staff.id);
+    if (idx !== -1) {
+      this.staffList[idx] = staff;
+    }
+  }
+}
+
+export class InMemoryBonusTypeRepo implements IBonusTypeRepo {
+  private bonusTypes: BonusType[] = [
+    { id: 'b-1', name: 'Standard Commission', kind: 'percentage_commission', params: { percent: 10 } },
+    { id: 'b-2', name: 'Flat Rate', kind: 'flat_per_customer', params: { amount: 5 } }
+  ];
+
+  async getById(id: string): Promise<BonusType | null> {
+    return this.bonusTypes.find(b => b.id === id) || null;
+  }
+
+  async getAll(): Promise<BonusType[]> {
+    return this.bonusTypes;
+  }
+
+  async update(bonusType: BonusType): Promise<void> {
+    const idx = this.bonusTypes.findIndex(b => b.id === bonusType.id);
+    if (idx !== -1) {
+      this.bonusTypes[idx] = bonusType;
+    }
+  }
+}
+
+// Keep mockServices for UI pickers
 export const mockServices: Service[] = [
   { id: 'serv-1', name: 'Buzz Cut' },
   { id: 'serv-2', name: 'Fade' },

@@ -2,7 +2,9 @@ import {
   Transaction,
   Product,
   QueueTicket,
-  Expense
+  Expense,
+  Staff,
+  BonusType
 } from '../../../shared/domain/entities';
 
 export interface ITransactionRepo {
@@ -28,4 +30,16 @@ export interface IQueueTicketRepo {
 export interface IExpenseRepo {
   save(expense: Expense): Promise<void>;
   getExpensesForDay(date: Date): Promise<Expense[]>;
+}
+
+export interface IStaffRepo {
+  getById(id: string): Promise<Staff | null>;
+  getAll(): Promise<Staff[]>;
+  update(staff: Staff): Promise<void>;
+}
+
+export interface IBonusTypeRepo {
+  getById(id: string): Promise<BonusType | null>;
+  getAll(): Promise<BonusType[]>;
+  update(bonusType: BonusType): Promise<void>;
 }

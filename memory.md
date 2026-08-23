@@ -21,3 +21,11 @@ every commit. Append only — never delete or rewrite past entries.
 - Layers touched: application, infrastructure (InMemoryRepos stubs), presentation
 - Apps affected: desktop-reporter
 - Why: Step 2 of build order in ARCHITECTURE.md. Currently using in-memory stubs for repos; Postgres/Supabase connection and BonusType computation are explicitly pending next steps.
+
+## 2026-08-23 — Bonus System & Expenses (In-Memory)
+- What changed: Added ComputeBonus (with all 4 strategy calculators), UpdateBonusType, and RecordExpense use cases. Built BonusConfigScreen for live strategy testing and ExpensesScreen for outcome tracking. Updated DailyReportScreen to reflect staff bonuses and calculate true net.
+- Layers touched: application, infrastructure (InMemoryStaffRepo, InMemoryBonusTypeRepo), presentation
+- Apps affected: desktop-reporter
+- Why: Steps 3 and 4 of build order in ARCHITECTURE.md. 
+
+*Note: Postgres/Supabase integration and the real queue engine (customer-web) are still the two remaining phases to complete the system.*
