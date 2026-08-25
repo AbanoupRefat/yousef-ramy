@@ -45,7 +45,7 @@ export type QueueTicket = {
   reservationStatus?: ReservationStatus;
   joinedAt: Date;
   position?: number;
-  phoneNumber?: string;
+  phoneNumber: string;
 };
 
 export type Transaction = {

@@ -24,7 +24,9 @@ export class QueueManagementUseCases {
     this.durationRepo = durationRepo;
   }
 
-  async joinQueue(customerId: string | null, serviceId: string, heroId: string, phoneNumber?: string): Promise<QueueTicket> {
+  async joinQueue(customerId: string | null, serviceId: string, heroId: string, phoneNumber: string): Promise<QueueTicket> {
+    const normalizedPhone = phoneNumber.trim();
+    if (!normalizedPhone) throw new Error('Phone number is required');
     const settings = await this.settingsRepo.getSettings();
     if (!settings.queueAcceptingRemote) {
       throw new Error('Reservations temporarily closed');
@@ -56,7 +58,7 @@ export class QueueManagementUseCases {
       reservationStatus: 'active',
       joinedAt: new Date(),
       position: maxPosition + 1,
-      phoneNumber
+      phoneNumber: normalizedPhone
     };
 
     await this.ticketRepo.create(newTicket);
@@ -93,6 +95,8 @@ export class QueueManagementUseCases {
   }
 
   async createManualReservation(staffId: string, serviceId: string, position: number, phoneNumber: string, customerId: string | null): Promise<QueueTicket> {
+    const normalizedPhone = phoneNumber.trim();
+    if (!normalizedPhone) throw new Error('Phone number is required');
     const waitingTickets = await this.getQueueForStaff(staffId);
     
     // Shift everyone at or below the target position down by 1
@@ -113,7 +117,7 @@ export class QueueManagementUseCases {
       reservationStatus: 'active',
       joinedAt: new Date(),
       position: position,
-      phoneNumber
+      phoneNumber: normalizedPhone
     };
 
     if (toUpdate.length > 0) {
