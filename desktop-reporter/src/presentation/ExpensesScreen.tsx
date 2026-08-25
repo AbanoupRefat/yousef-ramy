@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RecordExpense } from '../application/RecordExpense';
-import type {  IExpenseRepo  } from '../application/interfaces';
-import type {  Expense  } from '../../../shared/domain/entities';
+import type { IExpenseRepo } from '../application/interfaces';
+import type { Expense } from '../../../shared/domain/entities';
 
 interface Props {
   recordExpenseUseCase: RecordExpense;
@@ -29,75 +29,85 @@ export function ExpensesScreen({ recordExpenseUseCase, expenseRepo }: Props) {
       setDescription('');
       setAmount('');
       await loadExpenses();
-      alert('Expense recorded successfully!');
+      alert('تم تسجيل المصروف بنجاح!');
     } catch (err: any) {
-      alert(`Error recording expense: ${err.message}`);
+      alert(`خطأ أثناء تسجيل المصروف: ${err.message}`);
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Record Expense</h2>
+    <div className="p-6 max-w-4xl mx-auto space-y-6 dir-rtl text-right font-sans" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center gap-3 border-b pb-4 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">تسجيل المصروفات والمنصرف</h2>
+            <p className="text-sm text-gray-500">إضافة المصاريف التشغيلية اليومية للصالون</p>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Description / Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">وصف المصروف / البند</label>
               <input 
                 type="text" 
                 value={description} 
                 onChange={e => setDescription(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border"
+                className="block w-full rounded-xl border-gray-200 bg-gray-50 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm p-3 border"
                 required
-                placeholder="e.g. Rent, Supplies, Electricity"
+                placeholder="مثال: إيجار، أدوات نظافة، كهرباء، صيانة"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ ($)</label>
               <input 
                 type="number" 
                 value={amount} 
                 onChange={e => setAmount(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border"
+                className="block w-full rounded-xl border-gray-200 bg-gray-50 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm p-3 border"
                 required
                 min="0"
                 step="0.01"
+                placeholder="0.00"
               />
             </div>
           </div>
           <button 
             type="submit" 
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all focus:outline-none"
           >
-            Record Expense (Outcome)
+            حفظ المصروف
           </button>
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6 mt-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">Today's Expenses</h3>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">مصروفات اليوم</h3>
         {expenses.length === 0 ? (
-          <p className="text-gray-500 italic">No expenses recorded today.</p>
+          <p className="text-gray-400 text-sm italic">لم يتم تسجيل أي مصروفات اليوم.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">الوقت</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">البيان / الوصف</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">المبلغ</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {expenses.map(e => (
                   <tr key={e.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(e.timestamp).toLocaleTimeString()}
+                      {new Date(e.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
                       {e.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-rose-600 font-extrabold text-left">
                       ${Number(e.amount).toFixed(2)}
                     </td>
                   </tr>
