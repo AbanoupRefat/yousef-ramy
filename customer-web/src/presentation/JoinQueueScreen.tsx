@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { QueueManagementUseCases } from '../application/QueueManagementUseCases';
 import type { IStaffRepo, IServiceRepo, IShopSettingsRepo, IQueueTicketRepo } from '../application/interfaces';
 import type { Staff, Service } from '../../../shared/domain/entities';
@@ -37,7 +37,7 @@ export function JoinQueueScreen({ customer, queueUseCases, staffRepo, serviceRep
   const [isAccepting, setIsAccepting] = useState(true);
   const [reservationsUsed, setReservationsUsed] = useState(0);
 
-  const fetchSettingsAndLimits = async () => {
+  const fetchSettingsAndLimits = useCallback(async () => {
     try {
       const settings = await settingsRepo.getSettings();
       setIsAccepting(settings.queueAcceptingRemote);
@@ -47,17 +47,17 @@ export function JoinQueueScreen({ customer, queueUseCases, staffRepo, serviceRep
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [customer.id, settingsRepo, ticketRepo]);
 
   useEffect(() => {
     Promise.all([
       staffRepo.getAll().then((items) => setStaff(items.filter((item) => item.role === 'hero'))),
       serviceRepo.getAll().then(setServices),
-      fetchSettingsAndLimits(),
     ]).finally(() => setInitialLoading(false));
+    const initialRefresh = window.setTimeout(() => { void fetchSettingsAndLimits(); }, 0);
     const channel = supabase.channel('shop_settings_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, fetchSettingsAndLimits).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [staffRepo, serviceRepo, settingsRepo, customer.id, ticketRepo]);
+    return () => { supabase.removeChannel(channel); window.clearTimeout(initialRefresh); };
+  }, [staffRepo, serviceRepo, fetchSettingsAndLimits]);
 
   useEffect(() => {
     if (!selServiceId || staff.length === 0) return;
