@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { QueueManagementUseCases } from '../application/QueueManagementUseCases';
 import type { IStaffRepo, IServiceRepo, IShopSettingsRepo, IQueueTicketRepo } from '../application/interfaces';
 import type { Staff, Service } from '../../../shared/domain/entities';
 import { supabase } from '../infrastructure/SupabaseClient';
-import { Button } from './components/Button';
-import { Card } from './components/Card';
-import { PillButton } from './components/PillButton';
-import { HeroCard } from './components/HeroCard';
+import { Alert, Button, Icon, Panel, StatusBadge, EmptyState } from './components/UI';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
 interface Props {
-  customer: { id: string, name: string, phone: string | null };
+  customer: { id: string; name: string; phone: string | null };
   queueUseCases: QueueManagementUseCases;
   staffRepo: IStaffRepo;
   serviceRepo: IServiceRepo;
@@ -19,244 +16,114 @@ interface Props {
   onTicketCreated: (ticketId: string) => void;
 }
 
+type HeroStat = { queueDepth: number; etaSeconds: number };
+
+const formatEta = (seconds?: number) => {
+  if (seconds === undefined) return 'جارٍ الحساب';
+  if (seconds <= 0) return 'متاح الآن';
+  return `حوالي ${Math.ceil(seconds / 60)} دقيقة`;
+};
+
 export function JoinQueueScreen({ customer, queueUseCases, staffRepo, serviceRepo, settingsRepo, ticketRepo, onTicketCreated }: Props) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [heroStats, setHeroStats] = useState<Record<string, { queueDepth: number, etaSeconds: number }>>({});
-  
-  const [selStaffId, setSelStaffId] = useState<string>(''); // 'next-available' or UUID
+  const [heroStats, setHeroStats] = useState<Record<string, HeroStat>>({});
+  const [selStaffId, setSelStaffId] = useState('');
   const [selServiceId, setSelServiceId] = useState('');
   const [phoneNumber, setPhoneNumber] = useState(customer.phone || '');
-  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [isAccepting, setIsAccepting] = useState<boolean>(true);
-  
+  const [isAccepting, setIsAccepting] = useState(true);
   const [reservationsUsed, setReservationsUsed] = useState(0);
 
   const fetchSettingsAndLimits = async () => {
     try {
-      const s = await settingsRepo.getSettings();
-      setIsAccepting(s.queueAcceptingRemote);
-      
+      const settings = await settingsRepo.getSettings();
+      setIsAccepting(settings.queueAcceptingRemote);
       const activeCount = await ticketRepo.countForCustomerToday(customer.id, ['active']);
       const declinedCount = await ticketRepo.countForCustomerToday(customer.id, ['declined']);
       setReservationsUsed(activeCount + declinedCount);
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useEffect(() => {
     Promise.all([
-      staffRepo.getAll().then(s => setStaff(s.filter(x => x.role === 'hero'))),
+      staffRepo.getAll().then((items) => setStaff(items.filter((item) => item.role === 'hero'))),
       serviceRepo.getAll().then(setServices),
-      fetchSettingsAndLimits()
+      fetchSettingsAndLimits(),
     ]).finally(() => setInitialLoading(false));
-
-    const channel = supabase.channel('shop_settings_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, () => fetchSettingsAndLimits())
-      .subscribe();
-
+    const channel = supabase.channel('shop_settings_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, fetchSettingsAndLimits).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [staffRepo, serviceRepo, settingsRepo, customer.id, ticketRepo]);
 
   useEffect(() => {
     if (!selServiceId || staff.length === 0) return;
-
+    let cancelled = false;
     const loadStats = async () => {
-      const stats: Record<string, { queueDepth: number, etaSeconds: number }> = {};
+      const stats: Record<string, HeroStat> = {};
       for (const hero of staff) {
         const queue = await queueUseCases.getQueueForStaff(hero.id);
-        const depth = queue.length;
-        
-        const { data: duration } = await supabase
-          .from('staff_service_durations')
-          .select('rolling_avg_seconds')
-          .eq('staff_id', hero.id)
-          .eq('service_id', selServiceId)
-          .single();
-          
-        const avg = duration?.rolling_avg_seconds || 15 * 60;
-        stats[hero.id] = { queueDepth: depth, etaSeconds: depth * avg };
+        const { data: duration } = await supabase.from('staff_service_durations').select('rolling_avg_seconds').eq('staff_id', hero.id).eq('service_id', selServiceId).single();
+        const average = duration?.rolling_avg_seconds || 15 * 60;
+        stats[hero.id] = { queueDepth: queue.length, etaSeconds: queue.length * average };
       }
-      setHeroStats(stats);
+      if (!cancelled) setHeroStats(stats);
     };
-
     loadStats();
+    return () => { cancelled = true; };
   }, [selServiceId, staff, queueUseCases]);
 
   const nextAvailableHeroId = useMemo(() => {
-    if (Object.keys(heroStats).length === 0) return null;
-    let bestId = null;
-    let minEta = Infinity;
-    for (const [heroId, stat] of Object.entries(heroStats)) {
-      if (stat.etaSeconds < minEta) {
-        minEta = stat.etaSeconds;
-        bestId = heroId;
-      }
-    }
-    return bestId;
+    const entries = Object.entries(heroStats);
+    if (!entries.length) return null;
+    return entries.sort(([, a], [, b]) => a.etaSeconds - b.etaSeconds)[0][0];
   }, [heroStats]);
 
-  const handleJoin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selStaffId || !selServiceId) {
-      setError('يرجى اختيار الخدمة والحلاق المفضّل.');
+  const selectedHeroName = selStaffId === 'next-available' ? 'أسرع حلاق متاح' : staff.find((hero) => hero.id === selStaffId)?.name;
+  const selectedServiceName = services.find((service) => service.id === selServiceId)?.name;
+  const limitReached = reservationsUsed >= 2;
+
+  const handleJoin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    if (!selServiceId || !selStaffId) {
+      setError('اختر الخدمة والحلاق قبل تأكيد الحجز.');
       return;
     }
-
     const targetHeroId = selStaffId === 'next-available' ? nextAvailableHeroId : selStaffId;
     if (!targetHeroId) {
-      setError('تعذر تحديد الحلاق الأسرع، يرجى اختياره يدوياً.');
+      setError('لا توجد معلومات كافية عن وقت الانتظار الآن. اختر حلاقاً محدداً وحاول مرة أخرى.');
       return;
     }
-
     setLoading(true);
-    setError(null);
     try {
       const ticket = await queueUseCases.joinQueue(customer.id, selServiceId, targetHeroId, phoneNumber);
       onTicketCreated(ticket.id);
     } catch (err: any) {
-      setError(err.message || 'فشل الانضمام إلى قائمة الانتظار.');
+      setError(err.message || 'تعذر تأكيد الحجز. تحقق من البيانات وحاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (initialLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!isAccepting) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center mt-8 dir-rtl" dir="rtl">
-        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-          <span className="text-4xl">🛑</span>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">الحجز الإلكتروني متوقف حالياً</h2>
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          نحن نعمل حالياً بالطاقة الاستيعابية الكاملة ولا نستقبل حجوزات أونلاين في هذا الوقت.
-        </p>
-        <p className="text-sm font-bold text-indigo-600 uppercase tracking-wider">
-          يسعدنا استقبالكم حضورياً في الصالون!
-        </p>
-      </div>
-    );
-  }
-
-  const getLimitText = () => {
-    if (reservationsUsed >= 2) return "لقد استهلكت حجزيك لليوم (الحد الأقصى 2 حجز). يمكنك الحجز غداً.";
-    return `لديك ${reservationsUsed}/2 حجوزات اليوم — متبقي لك ${2 - reservationsUsed} حجز`;
-  };
-
-  const limitReached = reservationsUsed >= 2;
+  if (initialLoading) return <LoadingSpinner />;
+  if (!isAccepting) return <div className="login-page"><EmptyState title="الحجز الإلكتروني مغلق حالياً" description="الصالون ممتلئ الآن ولا يستقبل حجوزات جديدة عن بُعد. يمكنك زيارتنا حضورياً أو المحاولة لاحقاً." /></div>;
 
   return (
-    <div className="mt-6 mb-10 dir-rtl text-right" dir="rtl">
-      
-      {/* Welcome Banner */}
-      <div className="mb-6 bg-white p-4 rounded-xl shadow-sm flex items-center justify-between border-r-4 border-indigo-600">
-        <div>
-          <p className="text-xs text-gray-500">أهلاً بك،</p>
-          <p className="font-bold text-gray-900 text-base">{customer.name}</p>
-        </div>
-        <div className="text-left">
-          <p className={`text-xs font-semibold ${limitReached ? 'text-rose-600' : 'text-indigo-600'}`}>
-            {getLimitText()}
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 shadow-sm text-sm font-medium flex items-start gap-3">
-          <span className="text-lg">⚠️</span>
-          <div>{error}</div>
-        </div>
-      )}
-
-      {limitReached ? (
-        <Card className="p-6 text-center border-none ring-1 ring-red-100 bg-red-50 mt-8">
-           <h3 className="font-bold text-red-700 text-lg mb-2">وصلت للحد الأقصى للحجز اليوم</h3>
-           <p className="text-red-600 text-sm">لقد قمت بالحجز مرتين اليوم. يمكنك الحجز مجدداً أونلاين بدءاً من الغد.</p>
-        </Card>
-      ) : (
-        <form onSubmit={handleJoin} className="space-y-8">
-          
-          {/* Service Picker */}
-          <section>
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">1. اختر الخدمة</h2>
-            <div className="flex flex-wrap gap-2">
-              {services.map(s => (
-                <PillButton 
-                  key={s.id}
-                  label={s.name}
-                  selected={selServiceId === s.id}
-                  onClick={() => setSelServiceId(s.id)}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Hero Picker */}
-          {selServiceId && (
-            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">2. اختر الحلاق المفضّل</h2>
-              <div className="space-y-3">
-                <HeroCard
-                  name="أول حلاق متاح (الأسرع)"
-                  subtitle="الخيار الأسرع لك"
-                  isNextAvailable={true}
-                  selected={selStaffId === 'next-available'}
-                  onClick={() => setSelStaffId('next-available')}
-                />
-                
-                {staff.map(hero => {
-                  const stats = heroStats[hero.id];
-                  return (
-                    <HeroCard
-                      key={hero.id}
-                      name={hero.name}
-                      queueDepth={stats?.queueDepth}
-                      etaSeconds={stats?.etaSeconds}
-                      selected={selStaffId === hero.id}
-                      onClick={() => setSelStaffId(hero.id)}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Contact Info */}
-          {selServiceId && selStaffId && (
-            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">3. رقم الهاتف للتواصل</h2>
-              <Card className="p-1 border-0 ring-1 ring-gray-200 focus-within:ring-2 focus-within:ring-indigo-600 shadow-sm bg-white overflow-hidden transition-all duration-200">
-                <div className="flex items-center">
-                  <span className="pr-4 pl-2 text-gray-400 font-medium">+20</span>
-                  <input 
-                    type="tel" 
-                    value={phoneNumber} 
-                    onChange={e => setPhoneNumber(e.target.value)} 
-                    placeholder="010XXXXXXXX"
-                    className="w-full py-4 pl-4 bg-transparent focus:outline-none font-medium text-gray-900 placeholder-gray-300" 
-                  />
-                </div>
-              </Card>
-              <p className="text-[11px] text-gray-500 mt-2 mr-1">نستخدم هذا الرقم لاسترجاع تذكرتك في حال إغلاق الصفحة.</p>
-            </section>
-          )}
-
-          {/* Submit */}
-          {selServiceId && selStaffId && (
-            <div className="pt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <Button type="submit" disabled={loading} className="py-4 text-base font-bold uppercase tracking-wide">
-                {loading ? 'جاري تأكيد حجز دورك...' : 'تأكيد الحجز والدخول في الدور'}
-              </Button>
-            </div>
-          )}
+    <div>
+      <div className="welcome-bar"><div><div className="welcome-label">مرحباً بعودتك</div><div className="welcome-name">{customer.name}</div></div><StatusBadge tone={limitReached ? 'warning' : 'neutral'}>{reservationsUsed}/2 حجوزات اليوم</StatusBadge></div>
+      <div className="page-intro"><div className="eyebrow">حجز دور جديد</div><h1 className="page-title">احجز مكانك في الدور</h1><p className="page-description">اختر الخدمة والحلاق، وسنخبرك بالوقت المتوقع قبل أن تؤكد.</p></div>
+      <div className="progress-line" aria-label="تقدم الحجز"><span style={{ width: `${selServiceId ? (selStaffId ? '100%' : '66%') : '33%'}` }} /></div>
+      {error && <Alert>{error}</Alert>}
+      {limitReached ? <Panel><EmptyState title="اكتملت حجوزاتك اليوم" description="يمكنك استخدام الحجز الإلكتروني مرتين يومياً. عد غداً لحجز دور جديد." /></Panel> : (
+        <form className="form-stack" onSubmit={handleJoin}>
+          <div className="step"><div className="step-heading"><span className="step-number">01</span><h2 className="step-title">اختر الخدمة</h2></div><div className="choice-list">{services.map((service) => <button type="button" key={service.id} className={`choice ${selServiceId === service.id ? 'selected' : ''}`} onClick={() => { setSelServiceId(service.id); setSelStaffId(''); }}><span className="choice-main"><span className="choice-title">{service.name}</span><span className="choice-subtitle">خدمة حلاقة داخل الصالون</span></span><span className="choice-check">{selServiceId === service.id && <Icon name="check" size={14} />}</span></button>)}</div></div>
+          {selServiceId && <div className="step"><div className="step-heading"><span className="step-number">02</span><h2 className="step-title">اختر ما يناسبك</h2></div><div className="choice-list"><button type="button" className={`choice ${selStaffId === 'next-available' ? 'selected' : ''}`} onClick={() => setSelStaffId('next-available')}><span className="choice-main"><span className="choice-title">الأسرع لك</span><span className="choice-subtitle">نختار الحلاق صاحب أقصر وقت انتظار</span></span><span className="choice-meta"><Icon name="clock" size={16} />{formatEta(nextAvailableHeroId ? heroStats[nextAvailableHeroId]?.etaSeconds : undefined)}</span></button>{staff.map((hero) => { const stat = heroStats[hero.id]; return <button type="button" key={hero.id} className={`choice ${selStaffId === hero.id ? 'selected' : ''}`} onClick={() => setSelStaffId(hero.id)}><span className="choice-main"><span className="choice-title">{hero.name}</span><span className="choice-subtitle">{stat ? `${stat.queueDepth} ${stat.queueDepth === 1 ? 'شخص' : 'أشخاص'} قبلك` : 'نحسب وقت الانتظار الآن'}</span></span><span className="choice-meta"><Icon name="clock" size={16} />{formatEta(stat?.etaSeconds)}</span></button>; })}</div></div>}
+          {selServiceId && selStaffId && <Panel><div className="step"><div className="step-heading"><span className="step-number">03</span><h2 className="step-title">رقم للتواصل وإعادة فتح التذكرة</h2></div><div className="form-group"><label className="form-label" htmlFor="customer-phone">رقم الهاتف</label><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="status-badge status-neutral" dir="ltr">+20</span><input id="customer-phone" className="text-input" type="tel" inputMode="numeric" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="01012345678" dir="ltr" aria-describedby="phone-hint" /></div><div className="form-hint" id="phone-hint">سنستخدمه لمساعدتك على العودة إلى تذكرتك إذا أغلقت الصفحة.</div></div></div></Panel>}
+          {selServiceId && selStaffId && <Panel><div className="ui-panel-header"><div><h2 className="ui-panel-title">راجع الحجز</h2><p className="ui-panel-note">تأكد من التفاصيل قبل دخول الدور.</p></div><Icon name="check" size={22} color="#7a452d" /></div><div className="summary-list"><div className="summary-row"><span className="summary-label">الخدمة</span><span className="summary-value">{selectedServiceName}</span></div><div className="summary-row"><span className="summary-label">الاختيار</span><span className="summary-value">{selectedHeroName}</span></div><div className="summary-row"><span className="summary-label">الحجوزات المتبقية اليوم</span><span className="summary-value">{2 - reservationsUsed}</span></div></div><div className="action-footer"><Button type="submit" className="ui-button-wide" disabled={loading}>{loading ? 'جارٍ تأكيد دورك…' : 'تأكيد ودخول الدور'}</Button></div></Panel>}
         </form>
       )}
     </div>

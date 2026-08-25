@@ -1,122 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { RecordExpense } from '../application/RecordExpense';
 import type { IExpenseRepo } from '../application/interfaces';
 import type { Expense } from '../../../shared/domain/entities';
+import { Alert, Button, EmptyState, Panel, SectionHeader, StatusBadge } from './components/OperatorUI';
 
-interface Props {
-  recordExpenseUseCase: RecordExpense;
-  expenseRepo: IExpenseRepo;
-}
+interface Props { recordExpenseUseCase: RecordExpense; expenseRepo: IExpenseRepo; }
 
 export function ExpensesScreen({ recordExpenseUseCase, expenseRepo }: Props) {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
-
-  const loadExpenses = async () => {
-    const exps = await expenseRepo.getExpensesForDay(new Date());
-    setExpenses(exps);
-  };
-
-  useEffect(() => {
-    loadExpenses();
-  }, [expenseRepo]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await recordExpenseUseCase.execute(description, parseFloat(amount));
-      setDescription('');
-      setAmount('');
-      await loadExpenses();
-      alert('تم تسجيل المصروف بنجاح!');
-    } catch (err: any) {
-      alert(`خطأ أثناء تسجيل المصروف: ${err.message}`);
-    }
-  };
-
-  return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6 dir-rtl text-right font-sans" dir="rtl">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-3 border-b pb-4 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">تسجيل المصروفات والمنصرف</h2>
-            <p className="text-sm text-gray-500">إضافة المصاريف التشغيلية اليومية للصالون</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">وصف المصروف / البند</label>
-              <input 
-                type="text" 
-                value={description} 
-                onChange={e => setDescription(e.target.value)}
-                className="block w-full rounded-xl border-gray-200 bg-gray-50 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm p-3 border"
-                required
-                placeholder="مثال: إيجار، أدوات نظافة، كهرباء، صيانة"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">المبلغ ($)</label>
-              <input 
-                type="number" 
-                value={amount} 
-                onChange={e => setAmount(e.target.value)}
-                className="block w-full rounded-xl border-gray-200 bg-gray-50 shadow-sm focus:border-rose-500 focus:ring-rose-500 text-sm p-3 border"
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <button 
-            type="submit" 
-            className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all focus:outline-none"
-          >
-            حفظ المصروف
-          </button>
-        </form>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">مصروفات اليوم</h3>
-        {expenses.length === 0 ? (
-          <p className="text-gray-400 text-sm italic">لم يتم تسجيل أي مصروفات اليوم.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">الوقت</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">البيان / الوصف</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">المبلغ</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {expenses.map(e => (
-                  <tr key={e.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(e.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
-                      {e.description}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-rose-600 font-extrabold text-left">
-                      ${Number(e.amount).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const [notice, setNotice] = useState<{ text: string; tone: 'success' | 'danger' } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const loadExpenses = async () => { try { setExpenses(await expenseRepo.getExpensesForDay(new Date())); } catch (err: any) { setNotice({ text: err.message || 'تعذر تحميل المصروفات.', tone: 'danger' }); } };
+  useEffect(() => { loadExpenses(); }, [expenseRepo]);
+  const handleSubmit = async (event: React.FormEvent) => { event.preventDefault(); if (!description.trim() || Number(amount) <= 0) { setNotice({ text: 'أدخل وصفاً ومبلغاً أكبر من صفر.', tone: 'danger' }); return; } setSaving(true); try { await recordExpenseUseCase.execute(description.trim(), Number(amount)); setDescription(''); setAmount(''); await loadExpenses(); setNotice({ text: 'تم تسجيل المصروف بنجاح.', tone: 'success' }); } catch (err: any) { setNotice({ text: err.message || 'تعذر تسجيل المصروف.', tone: 'danger' }); } finally { setSaving(false); } };
+  const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  return <div className="operator-page"><div className="operator-page-intro"><div><div className="operator-eyebrow">النقدية اليومية</div><h1 className="operator-page-title">المصروفات</h1><p className="operator-page-description">سجّل المصروف كما حدث، ثم راجع أثره على يومك من نفس الصفحة.</p></div><StatusBadge tone="danger">إجمالي اليوم: ${total.toFixed(2)}</StatusBadge></div>{notice && <Alert tone={notice.tone}>{notice.text}</Alert>}<Panel><SectionHeader icon="wallet" title="إضافة مصروف" description="الوصف يساعدك على فهم التقرير لاحقاً؛ لا تتركه عاماً مثل “مصروف”." /><form className="field-grid" style={{ gridTemplateColumns: 'minmax(0, 1.5fr) minmax(180px, .5fr) auto' }} onSubmit={handleSubmit}><div className="field-group"><label className="field-label" htmlFor="expense-description">وصف المصروف</label><input id="expense-description" className="field-input" type="text" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="مثال: أدوات نظافة أو صيانة" required /></div><div className="field-group"><label className="field-label" htmlFor="expense-amount">المبلغ</label><input id="expense-amount" className="field-input" type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="0.00" required /></div><Button type="submit" disabled={saving}>{saving ? 'جارٍ الحفظ…' : 'حفظ المصروف'}</Button></form></Panel><Panel><SectionHeader icon="receipt" title="سجل مصروفات اليوم" description={`${expenses.length} عملية مسجلة`} />{expenses.length === 0 ? <EmptyState title="لا توجد مصروفات اليوم" description="ستظهر العمليات هنا بعد تسجيل أول مصروف." /> : <div className="data-list">{expenses.map((expense) => <div className="data-row" key={expense.id}><div className="data-row-main"><div className="data-row-title">{expense.description}</div><div className="data-row-meta">{new Date(expense.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</div></div><div className="data-row-value outcome">-${Number(expense.amount).toFixed(2)}</div></div>)}</div>}</Panel></div>;
 }
