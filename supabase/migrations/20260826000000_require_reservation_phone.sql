@@ -1,19 +1,18 @@
--- Reservation phone numbers are required for every queue ticket.
--- This intentionally fails with a clear message if old records need cleanup.
+-- Preserve historical queue tickets, but reject NULL or blank phone numbers
+-- for every new insert and every update after this migration.
+-- NOT VALID is intentional: it leaves legacy rows untouched while PostgreSQL
+-- still enforces the CHECK for future writes.
 DO $$
 BEGIN
-  IF EXISTS (
+  IF NOT EXISTS (
     SELECT 1
-    FROM public.queue_tickets
-    WHERE phone_number IS NULL OR btrim(phone_number) = ''
+    FROM pg_constraint
+    WHERE conname = 'queue_tickets_phone_required'
+      AND conrelid = 'public.queue_tickets'::regclass
   ) THEN
-    RAISE EXCEPTION 'Cannot require reservation phone numbers: clean existing NULL or blank queue_tickets.phone_number values first.';
+    ALTER TABLE public.queue_tickets
+      ADD CONSTRAINT queue_tickets_phone_required
+      CHECK (phone_number IS NOT NULL AND btrim(phone_number) <> '')
+      NOT VALID;
   END IF;
 END $$;
-
-ALTER TABLE public.queue_tickets
-  ALTER COLUMN phone_number SET NOT NULL;
-
-ALTER TABLE public.queue_tickets
-  ADD CONSTRAINT queue_tickets_phone_not_blank
-  CHECK (btrim(phone_number) <> '');
