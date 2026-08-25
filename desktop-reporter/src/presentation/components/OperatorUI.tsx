@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import type { ReactNode, SVGProps } from 'react';
 
-type IconName = 'scissors' | 'queue' | 'receipt' | 'wallet' | 'chart' | 'star' | 'settings' | 'plus' | 'arrow-up' | 'arrow-down' | 'trash' | 'check' | 'alert' | 'info' | 'close' | 'refresh' | 'box';
+type IconName = 'scissors' | 'queue' | 'receipt' | 'wallet' | 'chart' | 'star' | 'settings' | 'plus' | 'arrow-up' | 'arrow-down' | 'trash' | 'check' | 'alert' | 'info' | 'close' | 'refresh' | 'box' | 'edit' | 'chevron-down' | 'logout';
 
 export function Icon({ name, size = 19, ...props }: { name: IconName; size?: number } & Omit<SVGProps<SVGSVGElement>, 'name'>) {
   const paths: Record<IconName, ReactNode> = {
@@ -21,6 +22,9 @@ export function Icon({ name, size = 19, ...props }: { name: IconName; size?: num
     close: <><path d="m6 6 12 12M18 6 6 18" /></>,
     refresh: <><path d="M20 11a8.1 8.1 0 0 0-14.5-3L3 11" /><path d="M3 5v6h6M4 13a8.1 8.1 0 0 0 14.5 3L21 13" /><path d="M21 19v-6h-6" /></>,
     box: <><path d="m4 7 8-4 8 4-8 4-8-4Z" /><path d="M4 7v10l8 4 8-4V7M12 11v10" /></>,
+    edit: <><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" /><path d="m13.5 6.5 4 4" /></>,
+    'chevron-down': <path d="m6 9 6 6 6-6" /> ,
+    logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 19V5a2 2 0 0 0-2-2h-6" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;
 }
@@ -34,4 +38,10 @@ export function StatusBadge({ children, tone = 'neutral' }: { children: ReactNod
 export function Alert({ children, tone = 'danger' }: { children: ReactNode; tone?: 'danger' | 'info' | 'success' }) { return <div className={`op-alert op-alert-${tone}`} role="alert"><Icon name={tone === 'danger' ? 'alert' : tone === 'success' ? 'check' : 'info'} size={18} /><div>{children}</div></div>; }
 export function EmptyState({ title, description, action }: { title: string; description: string; action?: ReactNode }) { return <div className="op-empty"><Icon name="info" size={24} /><strong>{title}</strong><p>{description}</p>{action}</div>; }
 export function SectionHeader({ icon, title, description, action }: { icon: IconName; title: string; description?: string; action?: ReactNode }) { return <div className="op-section-header"><div className="op-section-heading"><span className="op-section-icon"><Icon name={icon} /></span><div><h2>{title}</h2>{description && <p>{description}</p>}</div></div>{action}</div>; }
+
+export function SelectMenu({ value, onChange, options, placeholder = 'اختر من القائمة', label }: { value: string; onChange: (value: string) => void; options: { value: string; label: string; meta?: string }[]; placeholder?: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+  return <div className="op-select-menu">{label && <span className="field-label">{label}</span>}<button type="button" className={`op-select-trigger ${open ? 'open' : ''}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}><span><strong>{selected?.label || placeholder}</strong>{selected?.meta && <small>{selected.meta}</small>}</span><Icon name="chevron-down" size={17} /></button>{open && <div className="op-select-options" role="listbox">{options.map((option) => <button type="button" role="option" aria-selected={option.value === value} key={option.value} className={option.value === value ? 'selected' : ''} onClick={() => { onChange(option.value); setOpen(false); }}><span><strong>{option.label}</strong>{option.meta && <small>{option.meta}</small>}</span>{option.value === value && <Icon name="check" size={17} />}</button>)}</div>}</div>;
+}
 export function ConfirmDialog({ open, title, description, confirmLabel, onCancel, onConfirm, busy = false }: { open: boolean; title: string; description: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void; busy?: boolean }) { if (!open) return null; return <div className="op-dialog-backdrop"><div className="op-dialog" role="alertdialog" aria-modal="true" aria-labelledby="op-dialog-title"><button className="op-dialog-close" aria-label="إغلاق" onClick={onCancel}><Icon name="close" /></button><div className="op-dialog-mark"><Icon name="alert" /></div><h2 id="op-dialog-title">{title}</h2><p>{description}</p><div className="op-dialog-actions"><Button variant="quiet" onClick={onCancel} disabled={busy}>تراجع</Button><Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? 'جارٍ التنفيذ…' : confirmLabel}</Button></div></div></div>; }

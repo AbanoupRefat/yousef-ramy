@@ -80,3 +80,35 @@ button, [role="button"], input, select { -webkit-tap-highlight-color: transparen
 @keyframes soft-pulse { 0%, 100% { opacity: .52; } 50% { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+.staff-entry-link { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; background: transparent; color: #2f5d50; font-size: .75rem; font-weight: 850; cursor: pointer; }
+.staff-entry-link:hover { color: #254a40; text-decoration: underline; }
+.text-link-button { width: 100%; margin-top: 14px; border: 0; background: transparent; color: #2f5d50; font-size: .75rem; font-weight: 850; cursor: pointer; }
+.ui-panel-heading { display: flex; align-items: center; gap: 10px; }
+.ui-panel-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: #e7f0ec; color: #2f5d50; flex: 0 0 auto; }
+.staff-control-page { gap: 16px; }
+.staff-control-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.staff-greeting { display: grid; gap: 3px; }
+.staff-greeting h1 { margin: 0; font-size: 1.45rem; letter-spacing: -.04em; }
+.staff-greeting p { margin: 0; color: #6a7674; font-size: .76rem; line-height: 1.6; }
+.staff-status-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; border-radius: 15px; background: #243d36; color: #fff; }
+.staff-status-card small { color: #bcd6ca; font-size: .72rem; }
+.staff-status-card strong { display: block; margin-top: 4px; font-size: .95rem; }
+.staff-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #8ad4a5; box-shadow: 0 0 0 5px rgb(138 212 165 / .16); }
+.staff-queue-list { display: grid; gap: 8px; }
+.staff-ticket-card { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; padding: 12px; border: 1px solid #e0e7e4; border-radius: 12px; background: #fff; }
+.staff-ticket-position { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: #e7f0ec; color: #2f5d50; font-size: .78rem; font-weight: 900; }
+.staff-ticket-main { min-width: 0; display: grid; gap: 3px; }
+.staff-ticket-main strong { font-size: .79rem; }
+.staff-ticket-main small { color: #71807b; font-size: .68rem; }
+.staff-ticket-actions { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.staff-ticket-actions .ui-button { flex: 1; min-height: 40px; padding-inline: 8px; font-size: .71rem; }
+.staff-call-button { background: #e3f3e9 !important; color: #2f6c50 !important; }
+.schedule-grid { display: grid; gap: 8px; }
+.schedule-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 9px 0; border-bottom: 1px solid #edf1ef; }
+.schedule-row:last-child { border-bottom: 0; }
+.schedule-day { grid-column: 1 / -1; color: #33413e; font-size: .78rem; font-weight: 850; }
+.schedule-off .schedule-day { color: #96a39e; }
+.schedule-row .text-input { min-height: 41px; padding-block: 8px; }
+.schedule-toggle { display: flex; align-items: center; gap: 5px; color: #71807b; font-size: .71rem; }
+.schedule-row .ui-button { min-height: 40px; }

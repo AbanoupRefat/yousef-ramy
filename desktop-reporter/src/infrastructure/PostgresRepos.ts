@@ -1,6 +1,6 @@
 import { supabase } from './SupabaseClient';
-import type {  Transaction, Product, QueueTicket, Expense, Staff, BonusType, Service, ShopSettings, StaffServiceDuration, ReservationStatus  } from '../../../shared/domain/entities';
-import type {  ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo, IStaffRepo, IBonusTypeRepo, IServiceRepo, IShopSettingsRepo, IStaffServiceDurationRepo  } from '../application/interfaces';
+import type {  Transaction, Product, QueueTicket, Expense, Staff, BonusType, Service, ShopSettings, StaffServiceDuration, ReservationStatus, StaffSchedule  } from '../../../shared/domain/entities';
+import type {  ITransactionRepo, IProductRepo, IQueueTicketRepo, IExpenseRepo, IStaffRepo, IBonusTypeRepo, IServiceRepo, IShopSettingsRepo, IStaffServiceDurationRepo, IStaffScheduleRepo  } from '../application/interfaces';
 
 export class PostgresTransactionRepo implements ITransactionRepo {
   async save(transaction: Transaction): Promise<void> {
@@ -58,6 +58,18 @@ export class PostgresProductRepo implements IProductRepo {
     return data.map(this.mapRowToProduct);
   }
 
+  async create(product: Product): Promise<void> {
+    const { error } = await supabase.from('products').insert({
+      id: product.id,
+      name: product.name,
+      stock_qty: product.stockQty,
+      low_stock_threshold: product.lowStockThreshold,
+      unit_cost: product.unitCost,
+      sale_price: product.salePrice ?? null,
+    });
+    if (error) throw new Error(error.message);
+  }
+
   async update(product: Product): Promise<void> {
     const { error } = await supabase.from('products').update({
       name: product.name,
@@ -66,6 +78,11 @@ export class PostgresProductRepo implements IProductRepo {
       unit_cost: product.unitCost,
       sale_price: product.salePrice
     }).eq('id', product.id);
+    if (error) throw new Error(error.message);
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) throw new Error(error.message);
   }
 
@@ -280,7 +297,9 @@ export class PostgresStaffRepo implements IStaffRepo {
       id: row.id,
       name: row.name,
       role: row.role as any,
-      bonusTypeId: row.bonus_type_id
+      bonusTypeId: row.bonus_type_id,
+      email: row.email,
+      authUserId: row.auth_user_id
     };
   }
 }
@@ -348,6 +367,19 @@ export class PostgresShopSettingsRepo implements IShopSettingsRepo {
     const { error } = await supabase.from('shop_settings').update({
       queue_accepting_remote: settings.queueAcceptingRemote
     }).eq('id', settings.id);
+    if (error) throw new Error(error.message);
+  }
+}
+
+export class PostgresStaffScheduleRepo implements IStaffScheduleRepo {
+  async getForStaff(staffId: string): Promise<StaffSchedule[]> {
+    const { data, error } = await supabase.from('staff_schedules').select('*').eq('staff_id', staffId).order('day_of_week', { ascending: true });
+    if (error) throw new Error(error.message);
+    return data.map((row) => ({ id: row.id, staffId: row.staff_id, dayOfWeek: row.day_of_week, startTime: row.start_time, endTime: row.end_time, isOff: row.is_off }));
+  }
+
+  async save(schedule: StaffSchedule): Promise<void> {
+    const { error } = await supabase.from('staff_schedules').upsert({ staff_id: schedule.staffId, day_of_week: schedule.dayOfWeek, start_time: schedule.startTime, end_time: schedule.endTime, is_off: schedule.isOff }, { onConflict: 'staff_id,day_of_week' });
     if (error) throw new Error(error.message);
   }
 }

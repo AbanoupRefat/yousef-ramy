@@ -15,11 +15,22 @@ export type Staff = {
   name: string;
   role: StaffRole;
   bonusTypeId: string;
+  email?: string | null;
+  authUserId?: string | null;
 };
 
 export type Service = {
   id: string;
   name: string;
+};
+
+export type StaffSchedule = {
+  id?: string;
+  staffId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isOff: boolean;
 };
 
 export type QueueTicketStatus = 'waiting' | 'with_hero' | 'done';

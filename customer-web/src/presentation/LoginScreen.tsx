@@ -3,7 +3,7 @@ import { supabase } from '../infrastructure/SupabaseClient';
 import { Button, Icon, Panel, Alert } from './components/UI';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
-export function LoginScreen({ onLogin }: { onLogin: (customerId: string, name: string, phone: string | null) => void }) {
+export function LoginScreen({ onLogin, onStaffMode }: { onLogin: (customerId: string, name: string, phone: string | null) => void; onStaffMode?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +47,7 @@ export function LoginScreen({ onLogin }: { onLogin: (customerId: string, name: s
       <div className="mobile-screen-header"><div className="login-mark"><Icon name="scissors" size={25} /></div><div className="mobile-kicker">أهلاً بك</div><h2>احجز دورك بهدوء</h2><p>اختر خدمتك من هاتفك واعرف مكانك في الدور بدون انتظار داخل الصالون.</p><div className="login-benefits"><div className="login-benefit"><span className="login-benefit-icon"><Icon name="clock" size={16} /></span><span>تقدير واضح لوقت الانتظار</span></div><div className="login-benefit"><span className="login-benefit-icon"><Icon name="refresh" size={16} /></span><span>تذكرتك تبقى متاحة عند العودة</span></div></div></div>
       {error && <Alert>{error}</Alert>}
       <Panel><div className="ui-panel-header"><div><h3 className="ui-panel-title">ابدأ من هنا</h3><p className="ui-panel-note">نستخدم حساب جوجل للتعرّف عليك وحفظ تذكرتك.</p></div><Icon name="user" size={21} color="#2f5d50" /></div><Button onClick={signInWithGoogle} className="ui-button-wide"><span style={{ fontWeight: 900, fontSize: '1.05rem' }}>G</span> تسجيل الدخول باستخدام جوجل</Button><p className="legal-copy">بالمتابعة، أنت توافق على شروط الخدمة وسياسة الخصوصية.</p></Panel>
+      {onStaffMode && <button className="staff-entry-link" onClick={onStaffMode}><Icon name="user" size={16} /> دخول فريق الصالون</button>}
     </div>
   );
 }

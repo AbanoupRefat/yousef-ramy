@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react';
 
-type IconName = 'scissors' | 'clock' | 'check' | 'arrow-left' | 'refresh' | 'phone' | 'pin' | 'info' | 'alert' | 'user' | 'logout' | 'close';
+type IconName = 'scissors' | 'clock' | 'check' | 'arrow-left' | 'refresh' | 'phone' | 'pin' | 'info' | 'alert' | 'user' | 'logout' | 'close' | 'queue' | 'settings' | 'arrow-up' | 'arrow-down' | 'trash';
 
 export function Icon({ name, size = 20, ...props }: { name: IconName; size?: number } & Omit<SVGProps<SVGSVGElement>, 'name'>) {
   const paths: Record<IconName, ReactNode> = {
@@ -16,6 +16,11 @@ export function Icon({ name, size = 20, ...props }: { name: IconName; size?: num
     user: <><circle cx="12" cy="8" r="3.5" /><path d="M5 21a7 7 0 0 1 14 0" /></>,
     logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 19V5a2 2 0 0 0-2-2h-6" /></>,
     close: <><path d="m6 6 12 12M18 6 6 18" /></>,
+    queue: <><path d="M5 5h14M5 12h14M5 19h14" /><circle cx="3" cy="5" r=".7" fill="currentColor" /><circle cx="3" cy="12" r=".7" fill="currentColor" /><circle cx="3" cy="19" r=".7" fill="currentColor" /></>,
+    settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.6 1.6-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2H11v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.6-1.6.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H5v-2.4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.6-1.6.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V5h2.4v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.6 1.6-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v2.4h-.2a1.7 1.7 0 0 0-1.5 1Z" /></>,
+    'arrow-up': <path d="m6 10 6-6 6 6M12 4v16" />,
+    'arrow-down': <path d="m6 14 6 6 6-6M12 20V4" />,
+    trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;
 }
@@ -23,6 +28,8 @@ export function Icon({ name, size = 20, ...props }: { name: IconName; size?: num
 export function Button({ children, variant = 'primary', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' | 'danger' }) {
   return <button className={`ui-button ui-button-${variant} ${className}`} {...props}>{children}</button>;
 }
+
+export function SectionHeader({ icon, title, description }: { icon: IconName; title: string; description?: string }) { return <div className="ui-panel-header"><div className="ui-panel-heading"><span className="ui-panel-icon"><Icon name={icon} size={18} /></span><div><h2 className="ui-panel-title">{title}</h2>{description && <p className="ui-panel-note">{description}</p>}</div></div></div>; }
 
 export function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`ui-panel ${className}`}>{children}</section>;

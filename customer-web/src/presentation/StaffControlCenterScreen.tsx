@@ -1,0 +1,37 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { QueueTicket, Service, Staff, StaffSchedule } from '../../../shared/domain/entities';
+import type { IQueueTicketRepo, IServiceRepo, IStaffScheduleRepo } from '../application/interfaces';
+import { QueueManagementUseCases } from '../application/QueueManagementUseCases';
+import { Alert, Button, ConfirmDialog, EmptyState, Icon, Panel, SectionHeader } from './components/UI';
+
+interface Props { staff: Staff; queueUseCases: QueueManagementUseCases; ticketRepo: IQueueTicketRepo; serviceRepo: IServiceRepo; scheduleRepo: IStaffScheduleRepo; onSignOut: () => void; }
+const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const defaultSchedule = (staffId: string): StaffSchedule[] => days.map((_, dayOfWeek) => ({ staffId, dayOfWeek, startTime: '10:00', endTime: '22:00', isOff: dayOfWeek === 5 }));
+
+export function StaffControlCenterScreen({ staff, queueUseCases, serviceRepo, scheduleRepo, onSignOut }: Props) {
+  const [queue, setQueue] = useState<QueueTicket[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [schedule, setSchedule] = useState<StaffSchedule[]>(defaultSchedule(staff.id));
+  const [notice, setNotice] = useState<{ text: string; tone: 'success' | 'danger' } | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [scheduleSaving, setScheduleSaving] = useState<number | null>(null);
+
+  const notify = (text: string, tone: 'success' | 'danger' = 'success') => { setNotice({ text, tone }); window.setTimeout(() => setNotice(null), 4500); };
+  const loadData = async () => { setLoading(true); try { const [nextQueue, nextServices, savedSchedule] = await Promise.all([queueUseCases.getQueueForStaff(staff.id), serviceRepo.getAll(), scheduleRepo.getForStaff(staff.id)]); setQueue(nextQueue); setServices(nextServices); const merged = defaultSchedule(staff.id).map((day) => savedSchedule.find((saved) => saved.dayOfWeek === day.dayOfWeek) || day); setSchedule(merged); } catch (error: any) { notify(error.message || 'تعذر تحميل مساحة العمل.', 'danger'); } finally { setLoading(false); } };
+  useEffect(() => { void loadData(); }, [staff.id]);
+
+  const serviceName = (id: string) => services.find((service) => service.id === id)?.name || 'خدمة غير محددة';
+  const selectedDelete = queue.find((ticket) => ticket.id === deleteId);
+  const totalActive = queue.length;
+  const todayLabel = useMemo(() => new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()), []);
+
+  const reorder = async (ticket: QueueTicket, delta: number) => { setBusy(true); try { await queueUseCases.reorderQueue(staff.id, ticket.id, (ticket.position ?? 0) + delta); notify(delta < 0 ? 'تم تقديم الحجز في الدور.' : 'تم تأخير الحجز في الدور.'); await loadData(); } catch (error: any) { notify(error.message || 'تعذر تحديث ترتيب الدور.', 'danger'); } finally { setBusy(false); } };
+  const deleteReservation = async () => { if (!deleteId) return; setBusy(true); try { await queueUseCases.deleteTicket(staff.id, deleteId); notify('تم حذف الحجز وإعادة ترتيب الدور.'); setDeleteId(null); await loadData(); } catch (error: any) { notify(error.message || 'تعذر حذف الحجز.', 'danger'); } finally { setBusy(false); } };
+  const saveDay = async (item: StaffSchedule) => { setScheduleSaving(item.dayOfWeek); try { await scheduleRepo.save(item); notify(`تم حفظ جدول يوم ${days[item.dayOfWeek]}.`); } catch (error: any) { notify(error.message || 'تعذر حفظ الجدول.', 'danger'); } finally { setScheduleSaving(null); } };
+  const updateDay = (dayOfWeek: number, patch: Partial<StaffSchedule>) => setSchedule((current) => current.map((item) => item.dayOfWeek === dayOfWeek ? { ...item, ...patch } : item));
+  const callCustomer = (phone?: string) => { if (phone) window.location.href = `tel:${phone.replace(/\s/g, '')}`; };
+
+  return <div className="staff-control-page operator-page"><div className="staff-control-header"><div className="staff-greeting"><div className="operator-eyebrow">{todayLabel}</div><h1>أهلاً يا {staff.name}</h1><p>هذه مساحتك لمتابعة دورك وجدولك من الهاتف.</p></div><Button variant="quiet" onClick={onSignOut}><Icon name="logout" size={17} /> خروج</Button></div>{notice && <Alert tone={notice.tone}>{notice.text}</Alert>}<div className="staff-status-card"><div><small>حالتك اليوم</small><strong>{totalActive ? `${totalActive} حجوزات في دورك` : 'لا توجد حجوزات حالياً'}</strong></div><span className="staff-status-dot" aria-label="متصل" /></div><Panel><SectionHeader icon="queue" title="دورك الآن" description="حرّك الحجز خطوة واحدة أو تواصل مع العميل عند الحاجة." />{loading ? <div className="inventory-skeleton" /> : queue.length === 0 ? <EmptyState title="الدور فارغ الآن" description="ستظهر الحجوزات الجديدة هنا فور انضمام العملاء إلى دورك." /> : <div className="staff-queue-list">{queue.map((ticket) => <div className="staff-ticket-card" key={ticket.id}><div className="staff-ticket-position">#{(ticket.position ?? 0) + 1}</div><div className="staff-ticket-main"><strong>{ticket.phoneNumber || 'حضور مباشر'}</strong><small>{serviceName(ticket.serviceId)} · انضم {ticket.joinedAt.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</small></div><div className="staff-ticket-actions">{ticket.phoneNumber && <Button variant="quiet" className="staff-call-button" onClick={() => callCustomer(ticket.phoneNumber)}><Icon name="phone" size={16} /> اتصال</Button>}<Button variant="quiet" onClick={() => void reorder(ticket, -1)} disabled={busy || (ticket.position ?? 0) === 0} aria-label="تقديم الحجز"><Icon name="arrow-up" size={16} /></Button><Button variant="quiet" onClick={() => void reorder(ticket, 1)} disabled={busy || (ticket.position ?? 0) >= queue.length - 1} aria-label="تأخير الحجز"><Icon name="arrow-down" size={16} /></Button><Button variant="quiet" onClick={() => setDeleteId(ticket.id)} aria-label="حذف الحجز"><Icon name="trash" size={16} /></Button></div></div>)}</div>}</Panel><Panel><SectionHeader icon="settings" title="جدولك الأسبوعي" description="اضبط ساعات العمل التي تريد رؤيتها في مساحة الفريق." /><div className="schedule-grid">{schedule.map((item) => <div className={`schedule-row ${item.isOff ? 'schedule-off' : ''}`} key={item.dayOfWeek}><span className="schedule-day">{days[item.dayOfWeek]}</span><input className="field-input" type="time" value={item.startTime} disabled={item.isOff} onChange={(event) => updateDay(item.dayOfWeek, { startTime: event.target.value })} aria-label={`بداية دوام ${days[item.dayOfWeek]}`} /><input className="field-input" type="time" value={item.endTime} disabled={item.isOff} onChange={(event) => updateDay(item.dayOfWeek, { endTime: event.target.value })} aria-label={`نهاية دوام ${days[item.dayOfWeek]}`} /><label className="schedule-toggle"><input type="checkbox" checked={item.isOff} onChange={(event) => updateDay(item.dayOfWeek, { isOff: event.target.checked })} /> إجازة</label><Button variant="quiet" onClick={() => void saveDay(item)} disabled={scheduleSaving === item.dayOfWeek}>{scheduleSaving === item.dayOfWeek ? 'يحفظ…' : 'حفظ'}</Button></div>)}</div></Panel><ConfirmDialog open={Boolean(deleteId)} title="حذف الحجز؟" description={`سيُحذف حجز ${selectedDelete?.phoneNumber || 'العميل'} من دورك، وسيتم تقريب الحجوزات التالية تلقائياً.`} confirmLabel="حذف الحجز" onCancel={() => setDeleteId(null)} onConfirm={() => void deleteReservation()} busy={busy} /></div>;
+}

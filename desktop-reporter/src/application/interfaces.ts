@@ -8,7 +8,8 @@ import type {
   Service,
   ShopSettings,
   StaffServiceDuration,
-  ReservationStatus
+  ReservationStatus,
+  StaffSchedule
  } from '../../../shared/domain/entities';
 
 export interface ITransactionRepo {
@@ -19,7 +20,9 @@ export interface ITransactionRepo {
 export interface IProductRepo {
   getById(id: string): Promise<Product | null>;
   getAll(): Promise<Product[]>;
+  create(product: Product): Promise<void>;
   update(product: Product): Promise<void>;
+  delete(id: string): Promise<void>;
 }
 
 export interface IQueueTicketRepo {
@@ -64,4 +67,9 @@ export interface IShopSettingsRepo {
 export interface IStaffServiceDurationRepo {
   getDuration(staffId: string, serviceId: string): Promise<StaffServiceDuration | null>;
   saveDuration(duration: StaffServiceDuration): Promise<void>;
+}
+
+export interface IStaffScheduleRepo {
+  getForStaff(staffId: string): Promise<StaffSchedule[]>;
+  save(schedule: StaffSchedule): Promise<void>;
 }
