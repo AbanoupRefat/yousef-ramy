@@ -18,8 +18,8 @@ export class CompleteAndAdvance {
       throw new Error(`Ticket not found: ${ticketId}`);
     }
 
-    if (ticket.status !== 'with_hero') {
-      throw new Error(`Ticket is not with hero, current status: ${ticket.status}`);
+    if (ticket.status !== 'with_hero' && ticket.status !== 'waiting') {
+      throw new Error(`التذكرة ليست نشطة في الدور حالياً، حالتها: ${ticket.status}`);
     }
 
     // 1. Calculate actual duration (using joinedAt as proxy for now per MVP)
