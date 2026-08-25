@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react';
 
-type IconName = 'scissors' | 'clock' | 'check' | 'arrow-left' | 'refresh' | 'phone' | 'pin' | 'info' | 'alert' | 'user' | 'close';
+type IconName = 'scissors' | 'clock' | 'check' | 'arrow-left' | 'refresh' | 'phone' | 'pin' | 'info' | 'alert' | 'user' | 'logout' | 'close';
 
 export function Icon({ name, size = 20, ...props }: { name: IconName; size?: number } & Omit<SVGProps<SVGSVGElement>, 'name'>) {
   const paths: Record<IconName, ReactNode> = {
@@ -14,6 +14,7 @@ export function Icon({ name, size = 20, ...props }: { name: IconName; size?: num
     info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></>,
     alert: <><path d="M10.3 3.5 2.2 18a2 2 0 0 0 1.7 3h16.2a2 2 0 0 0 1.7-3L13.7 3.5a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></>,
     user: <><circle cx="12" cy="8" r="3.5" /><path d="M5 21a7 7 0 0 1 14 0" /></>,
+    logout: <><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 19V5a2 2 0 0 0-2-2h-6" /></>,
     close: <><path d="m6 6 12 12M18 6 6 18" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;

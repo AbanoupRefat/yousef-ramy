@@ -17,7 +17,10 @@ button, [role="button"], input, select { -webkit-tap-highlight-color: transparen
 .mobile-appbar-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #d5e3de; color: #2f5d50; }
 .mobile-icon-button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; background: transparent; color: #52605d; cursor: pointer; }
 .mobile-icon-button:hover { background: #e8eeec; }
-.mobile-content { flex: 1 1 auto; min-height: 0; padding: 20px 16px 32px; overflow: visible; }
+.mobile-signout-button { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #dce6e2; border-radius: 10px; padding: 8px 10px; background: #fff; color: #5d6a66; font-size: .7rem; font-weight: 800; cursor: pointer; }
+.mobile-signout-button:hover { color: #ad5143; border-color: #e8c9c2; background: #fff9f7; }
+.mobile-signout-button:disabled { opacity: .55; cursor: wait; }
+.mobile-content { flex: 1 1 auto; min-height: 0; padding: 20px 16px calc(124px + env(safe-area-inset-bottom)); overflow: visible; }
 
 .mobile-screen { display: grid; gap: 18px; animation: mobile-screen-enter 360ms cubic-bezier(.22, .61, .36, 1) both; }
 .mobile-screen-header { display: grid; gap: 6px; animation: mobile-header-enter 420ms 40ms cubic-bezier(.22, .61, .36, 1) both; }
@@ -26,8 +29,13 @@ button, [role="button"], input, select { -webkit-tap-highlight-color: transparen
 .mobile-screen-title { margin: 0; font-size: 1.55rem; line-height: 1.25; letter-spacing: -.045em; }
 .mobile-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #e6eeeb; color: #52605d; animation: mobile-context-enter 320ms ease-out both; }
 .mobile-context-name { margin-top: 2px; color: #2f5d50; font-size: .84rem; font-weight: 900; }
-.mobile-primary-action { padding-top: 6px; }
+.mobile-primary-action { padding-top: 6px; padding-bottom: 8px; }
 .mobile-actions { display: grid; gap: 8px; }
+.empty-ticket-screen { min-height: 60vh; align-content: center; text-align: center; }
+.empty-ticket-icon { width: 64px; height: 64px; margin: 0 auto; display: grid; place-items: center; border-radius: 20px; background: #e7f0ec; color: #2f5d50; animation: soft-pulse 2.4s ease-in-out infinite; }
+.empty-ticket-guide { display: grid; gap: 12px; text-align: right; }
+.empty-ticket-guide-row { display: flex; align-items: center; gap: 10px; color: #52605d; font-size: .78rem; }
+.empty-ticket-step { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 8px; background: #e6efeb; color: #2f5d50; font-weight: 900; font-size: .68rem; flex: 0 0 auto; }
 .mobile-kicker { color: #2f5d50; font-size: .72rem; font-weight: 900; letter-spacing: .06em; }
 .mobile-helper { color: #6a7674; font-size: .75rem; line-height: 1.6; }
 .mobile-surface, .ui-panel { background: #fff; border: 1px solid #e0e7e4; border-radius: 14px; padding: 16px; box-shadow: 0 2px 7px rgb(31 46 42 / .035); }
