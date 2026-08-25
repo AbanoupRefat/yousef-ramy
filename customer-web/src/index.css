@@ -112,3 +112,9 @@ button, [role="button"], input, select { -webkit-tap-highlight-color: transparen
 .schedule-row .text-input { min-height: 41px; padding-block: 8px; }
 .schedule-toggle { display: flex; align-items: center; gap: 5px; color: #71807b; font-size: .71rem; }
 .schedule-row .ui-button { min-height: 40px; }
+
+.staff-google-note, .central-auth-note { display: flex; align-items: flex-start; gap: 8px; padding: 10px 11px; border-radius: 10px; background: #edf3f0; color: #52605d; font-size: .74rem; line-height: 1.6; margin-bottom: 12px; }
+.staff-google-note svg, .central-auth-note svg { color: #2f5d50; flex: 0 0 auto; margin-top: 2px; }
+.staff-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.staff-booking-view { display: grid; gap: 14px; }
+@media (max-width: 520px) { .staff-header-actions { width: 100%; }.staff-header-actions .ui-button { flex: 1; } }

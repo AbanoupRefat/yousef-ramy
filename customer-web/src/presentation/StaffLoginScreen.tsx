@@ -1,48 +1,43 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Staff } from '../../../shared/domain/entities';
 import type { IStaffRepo } from '../application/interfaces';
 import { supabase } from '../infrastructure/SupabaseClient';
 import { Alert, Button, Icon, Panel } from './components/UI';
 
-interface Props { staffRepo: IStaffRepo; onLogin: (staff: Staff) => void; onBack: () => void; }
-
-type Mode = 'sign-in' | 'sign-up';
+interface Props { staffRepo: IStaffRepo; onLogin: (staff: Staff, customer: { id: string; name: string; phone: string | null }) => void; onBack: () => void; }
 
 export function StaffLoginScreen({ staffRepo, onLogin, onBack }: Props) {
-  const [mode, setMode] = useState<Mode>('sign-in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const resolveStaff = async (userId: string, userEmail?: string | null) => {
-    const people = await staffRepo.getAll();
-    const match = people.find((person) => person.authUserId === userId || (userEmail && person.email?.toLowerCase() === userEmail.toLowerCase()));
-    if (!match) throw new Error('هذا الحساب غير مرتبط بحساب Yousef أو Ramy في النظام. اطلب من مدير الصالون ربط بريدك بالحساب أولاً.');
-    if (!match.authUserId) await supabase.from('staff').update({ auth_user_id: userId }).eq('id', match.id);
-    onLogin({ ...match, authUserId: userId, email: userEmail || match.email });
-  };
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault(); setError(null); setNotice(null); setLoading(true);
+  const resolveGoogleUser = useCallback(async (user: any) => {
+    setLoading(true); setError(null);
     try {
-      if (mode === 'sign-up') {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password, options: { data: { full_name: name.trim() } } });
-        if (signUpError) throw signUpError;
-        if (!data.user) throw new Error('تعذر إنشاء الحساب الآن.');
-        setNotice('تم إنشاء الحساب. إذا كان بريدك مرتبطاً بحساب الحلاق، يمكنك تسجيل الدخول الآن.');
-        setMode('sign-in');
-      } else {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (signInError) throw signInError;
-        if (!data.user) throw new Error('تعذر تسجيل الدخول الآن.');
-        await resolveStaff(data.user.id, data.user.email);
+      const people = await staffRepo.getAll();
+      const match = people.find((person) => person.authUserId === user.id || (user.email && person.email?.toLowerCase() === user.email.toLowerCase()));
+      if (!match) throw new Error('هذا الحساب غير مرتبط بحساب Yousef أو Ramy في النظام. اطلب من مدير الصالون ربط بريدك أولاً.');
+      if (!match.authUserId) {
+        const { error: bindError } = await supabase.from('staff').update({ auth_user_id: user.id }).eq('id', match.id);
+        if (bindError) throw bindError;
       }
-    } catch (err: any) { setError(err.message || 'تعذر إكمال العملية.'); }
+      const { data: customer, error: customerError } = await supabase.from('customers').upsert({ google_id: user.id, name: user.user_metadata?.full_name || match.name, email: user.email }, { onConflict: 'google_id' }).select().single();
+      if (customerError) throw customerError;
+      onLogin({ ...match, authUserId: user.id, email: user.email || match.email }, { id: customer.id, name: customer.name || match.name, phone: customer.phone_number });
+    } catch (err: any) { setError(err.message || 'تعذر تجهيز مساحة الفريق.'); }
     finally { setLoading(false); }
+  }, [onLogin, staffRepo]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => { if (session) void resolveGoogleUser(session.user); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { if (session) void resolveGoogleUser(session.user); });
+    return () => subscription.unsubscribe();
+  }, [resolveGoogleUser]);
+
+  const signInWithGoogle = async () => {
+    setError(null); setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/?mode=staff` } });
+    if (signInError) { setError('تعذر فتح Google Sign-In. تحقق من إعدادات Google وSupabase.'); setLoading(false); }
   };
 
-  return <div className="staff-login-page mobile-screen"><button className="back-link" onClick={onBack}><Icon name="arrow-left" size={17} /> العودة لدخول العملاء</button><div className="mobile-screen-header"><span className="staff-login-badge"><Icon name="user" size={16} /> مساحة فريق الصالون</span><h2>{mode === 'sign-in' ? 'دخول الحلاقين' : 'إنشاء حساب للفريق'}</h2><p>{mode === 'sign-in' ? 'ادخل لتشاهد دورك اليومي وتدير حجوزاتك من الهاتف.' : 'أنشئ الحساب بالبريد المرتبط بملفك في الصالون.'}</p></div>{error && <Alert>{error}</Alert>}{notice && <Alert tone="success">{notice}</Alert>}<Panel><form className="form-stack" onSubmit={submit}>{mode === 'sign-up' && <div className="field-group"><label className="field-label" htmlFor="staff-name">الاسم</label><input id="staff-name" className="field-input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Yousef أو Ramy" required /></div>}<div className="field-group"><label className="field-label" htmlFor="staff-email">البريد الإلكتروني</label><input id="staff-email" className="field-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" dir="ltr" required /></div><div className="field-group"><label className="field-label" htmlFor="staff-password">كلمة المرور</label><input id="staff-password" className="field-input" type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="6 أحرف على الأقل" dir="ltr" required /></div><Button type="submit" className="ui-button-wide" disabled={loading}>{loading ? 'جارٍ التنفيذ…' : mode === 'sign-in' ? 'تسجيل الدخول' : 'إنشاء الحساب'}</Button></form><button className="text-link-button" onClick={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setError(null); setNotice(null); }}>{mode === 'sign-in' ? 'ليس لديك حساب؟ أنشئ حساباً' : 'لديك حساب بالفعل؟ سجل الدخول'}</button></Panel></div>;
+  return <div className="staff-login-page mobile-screen"><button className="back-link" onClick={onBack}><Icon name="arrow-left" size={17} /> العودة لدخول العملاء</button><div className="mobile-screen-header"><span className="staff-login-badge"><Icon name="user" size={16} /> مساحة فريق الصالون</span><h2>دخول Yousef أو Ramy</h2><p>استخدم حساب Google نفسه الذي تستخدمه للحجز. سيظهر لك مركز التحكم إذا كان بريدك مرتبطاً بملفك في الصالون.</p></div>{error && <Alert>{error}</Alert>}<Panel><div className="staff-google-note"><Icon name="info" size={19} /><span>لا توجد كلمة مرور منفصلة للفريق. Google هو حسابك المركزي في التطبيقات الثلاثة.</span></div><Button onClick={() => void signInWithGoogle()} className="ui-button-wide" disabled={loading}><span style={{ fontWeight: 900, fontSize: '1.05rem' }}>G</span> {loading ? 'جارٍ فتح Google…' : 'المتابعة باستخدام Google'}</Button></Panel></div>;
 }
