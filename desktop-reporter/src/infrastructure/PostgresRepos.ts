@@ -172,8 +172,12 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
     return count || 0;
   }
 
-  async updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus }): Promise<number> {
-    let query = supabase.from('queue_tickets').update({ reservation_status: update.reservationStatus });
+  async updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus; status?: any }): Promise<number> {
+    const updatePayload: any = { reservation_status: update.reservationStatus };
+    if (update.status) {
+      updatePayload.status = update.status;
+    }
+    let query = supabase.from('queue_tickets').update(updatePayload);
     
     if (filter.status) {
       query = query.eq('status', filter.status);
@@ -188,6 +192,11 @@ export class PostgresQueueTicketRepo implements IQueueTicketRepo {
     const { data, error } = await query.select('id');
     if (error) throw new Error(error.message);
     return data ? data.length : 0;
+  }
+
+  async delete(ticketId: string): Promise<void> {
+    const { error } = await supabase.from('queue_tickets').delete().eq('id', ticketId);
+    if (error) throw new Error(error.message);
   }
 
   private mapRowToTicket(row: any): QueueTicket {

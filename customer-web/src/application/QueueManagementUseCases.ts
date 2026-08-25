@@ -173,6 +173,19 @@ export class QueueManagementUseCases {
     await this.ticketRepo.update(ticket);
   }
 
+  async deleteTicket(staffId: string, ticketId: string): Promise<void> {
+    await this.ticketRepo.delete(ticketId);
+    
+    // Re-index remaining waiting tickets
+    const waitingTickets = await this.getQueueForStaff(staffId);
+    for (let i = 0; i < waitingTickets.length; i++) {
+      waitingTickets[i].position = i;
+    }
+    if (waitingTickets.length > 0) {
+      await this.ticketRepo.updateBatch(waitingTickets);
+    }
+  }
+
   async cleanupEndOfDay(): Promise<{ expiredCount: number, noShowCount: number }> {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -180,12 +193,12 @@ export class QueueManagementUseCases {
 
     const expiredCount = await this.ticketRepo.updateMany(
       { status: 'waiting', joinedAtGte: startOfToday, joinedAtLte: now },
-      { reservationStatus: 'expired' }
+      { reservationStatus: 'expired', status: 'cancelled' }
     );
 
     const noShowCount = await this.ticketRepo.updateMany(
       { status: 'with_hero', joinedAtGte: startOfToday, joinedAtLte: now },
-      { reservationStatus: 'no_show' }
+      { reservationStatus: 'no_show', status: 'done' }
     );
 
     return { expiredCount, noShowCount };

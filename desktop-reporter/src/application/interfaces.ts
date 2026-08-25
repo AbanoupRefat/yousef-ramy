@@ -31,7 +31,8 @@ export interface IQueueTicketRepo {
   getTicketsWithHero(heroId: string): Promise<QueueTicket[]>;
   getAllTickets(): Promise<QueueTicket[]>;
   countForCustomerToday(customerId: string, statuses: ReservationStatus[]): Promise<number>;
-  updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus }): Promise<number>;
+  updateMany(filter: { status?: string; joinedAtGte?: Date; joinedAtLte?: Date }, update: { reservationStatus: ReservationStatus; status?: any }): Promise<number>;
+  delete(ticketId: string): Promise<void>;
 }
 
 export interface IExpenseRepo {

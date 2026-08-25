@@ -49,34 +49,36 @@ const queueUseCases = new QueueManagementUseCases(ticketRepo, shopSettingsRepo, 
 type Tab = 'receipts' | 'reports' | 'bonus' | 'expenses' | 'queue';
 
 function App() {
+  const [activeTab, setActiveTab] = useState<Tab>('queue');
 
-  const [activeTab, setActiveTab] = useState<Tab>('receipts');
-
-  const tabClass = (tab: Tab) => `px-3 py-2 rounded-md text-sm font-medium ${
-    activeTab === tab ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-700'
+  const tabClass = (tab: Tab) => `px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+    activeTab === tab ? 'bg-white text-indigo-900 shadow-sm' : 'text-indigo-100 hover:bg-indigo-700/50'
   }`;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-indigo-600 shadow-sm">
+    <div className="min-h-screen bg-gray-100 flex flex-col font-sans dir-rtl" dir="rtl">
+      <header className="bg-indigo-900 text-white shadow-md border-b border-indigo-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-white">Barber Reporter (Stub Mode)</h1>
-            <nav className="flex space-x-4">
+          <div className="flex flex-col md:flex-row justify-between h-auto md:h-20 items-center py-3 md:py-0 gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💈</span>
+              <h1 className="text-xl font-black tracking-wide">نظام إدارة صالون الحلاقة والدور</h1>
+            </div>
+            <nav className="flex flex-wrap gap-2 justify-center">
+              <button onClick={() => setActiveTab('queue')} className={tabClass('queue')}>
+                📋 إدارة الدور والانتظار
+              </button>
               <button onClick={() => setActiveTab('receipts')} className={tabClass('receipts')}>
-                Receipt Entry
+                🧾 تسجيل فاتورة / خدمة
               </button>
               <button onClick={() => setActiveTab('expenses')} className={tabClass('expenses')}>
-                Expenses
+                💸 المصروفات
               </button>
               <button onClick={() => setActiveTab('reports')} className={tabClass('reports')}>
-                Daily Report
+                📊 التقرير اليومي
               </button>
               <button onClick={() => setActiveTab('bonus')} className={tabClass('bonus')}>
-                Bonus Config
-              </button>
-              <button onClick={() => setActiveTab('queue')} className={tabClass('queue')}>
-                Queue Management
+                ⭐ إعدادات الحوافز والنسب
               </button>
             </nav>
           </div>
@@ -84,6 +86,13 @@ function App() {
       </header>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {activeTab === 'queue' && (
+          <QueueManagementScreen 
+            queueUseCases={queueUseCases}
+            staffRepo={staffRepo}
+            serviceRepo={serviceRepo}
+          />
+        )}
         {activeTab === 'receipts' && (
           <ReceiptEntryScreen 
             recordTransactionUseCase={recordTransaction} 
@@ -111,13 +120,6 @@ function App() {
             computeBonusUseCase={computeBonus}
             staffRepo={staffRepo}
             bonusTypeRepo={bonusTypeRepo}
-          />
-        )}
-        {activeTab === 'queue' && (
-          <QueueManagementScreen 
-            queueUseCases={queueUseCases}
-            staffRepo={staffRepo}
-            serviceRepo={serviceRepo}
           />
         )}
       </main>

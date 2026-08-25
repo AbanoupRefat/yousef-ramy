@@ -24,14 +24,14 @@ function App() {
   const [customer, setCustomer] = useState<{ id: string, name: string, phone: string | null } | null>(null);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
+    <div className="min-h-screen bg-gray-50 flex justify-center font-sans dir-rtl" dir="rtl">
       <div className="w-full max-w-[428px] bg-gray-50 min-h-screen flex flex-col relative shadow-xl">
-        <header className="bg-primary shadow-md py-4 px-6 rounded-b-2xl z-10">
+        <header className="bg-indigo-900 shadow-md py-4 px-6 rounded-b-2xl z-10 text-white">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-sm">
-              BQ
+            <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              ✂️
             </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Barber Queue</h1>
+            <h1 className="text-xl font-bold tracking-tight">حجز صالون الحلاقة</h1>
           </div>
         </header>
 
