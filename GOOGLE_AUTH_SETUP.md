@@ -69,7 +69,7 @@ Apply the migration `supabase/migrations/20260825000000_staff_auth_and_schedules
 supabase db push
 ```
 
-Before Yousef and Ramy sign in for the first time, add their real Google account email addresses to the existing staff rows. Keep real email addresses out of GitHub:
+Before Yousef and Ramy sign in for the first time, add their real Google account email addresses to the existing staff rows. Keep real email addresses out of source control:
 
 ```sql
 update staff
